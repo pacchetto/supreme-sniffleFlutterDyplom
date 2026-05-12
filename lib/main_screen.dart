@@ -60,7 +60,7 @@ class _MainScreenState extends State<MainScreen> {
                     mainAxisAlignment:
                         MainAxisAlignment.center, // Центруємо по горизонталі
                     children: [
-                      Container(
+                      SizedBox(
                         width: 300, // Фіксована ширина панелі (капсули)
                         height: 70, // Висота панелі
                         child: Stack(

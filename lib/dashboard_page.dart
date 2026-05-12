@@ -1,3 +1,4 @@
+import 'package:aetheria_graph_app/breathing_data.dart';
 import 'package:flutter/material.dart';
 import 'session_page.dart';
 import 'all_techniques_page.dart';
@@ -11,61 +12,86 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   final Color neonPink = const Color(0xFFFF007F);
-  final List<String> categories = ["Chill", "Focus", "Sleep", "Energize"];
+  final List<String> categories = [
+    "All",
+    "Chill",
+    "Focus",
+    "Sleep",
+    "Energize",
+  ];
   int activeCategoryIndex = 0;
 
-  // Розширена база даних
-  final List<Map<String, dynamic>> breathingTechniques = [
-    {
-      "title": "Box Breathing",
-      "subtitle": "Clear mind & focus • 5 min",
-      "mode": "DEEP FOCUS",
-      "icon": Icons.crop_square_rounded,
-      "color": const Color(0xFFFF007F), // Рожевий
-    },
-    {
-      "title": "4-7-8 Relax",
-      "subtitle": "Fall asleep faster • 8 min",
-      "mode": "DEEP SLEEP",
-      "icon": Icons.nightlight_round,
-      "color": const Color(0xFFB066FF), // Фіолетовий
-    },
-    {
-      "title": "Fire Breath",
-      "subtitle": "Morning energy • 3 min",
-      "mode": "ENERGY BOOST",
-      "icon": Icons.local_fire_department_rounded,
-      "color": const Color(0xFFFF4B4B), // Червоний
-    },
-    {
-      "title": "Resonance",
-      "subtitle": "Heart coherence • 10 min",
-      "mode": "CALM STATE",
-      "icon": Icons.favorite_border_rounded,
-      "color": const Color(0xFF00D0FF), // Блакитний
-    },
-    {
-      "title": "Nadi Shodhana",
-      "subtitle": "Balance nervous system • 7 min",
-      "mode": "BALANCE",
-      "icon": Icons.air_rounded,
-      "color": const Color(0xFF00FF88), // Зелений
-    },
-    {
-      "title": "Wim Hof Method",
-      "subtitle": "Immunity & Power • 15 min",
-      "mode": "POWER",
-      "icon": Icons.ac_unit_rounded,
-      "color": const Color(0xFF00E5FF), // Ціан
-    },
-    {
-      "title": "Sama Vritti",
-      "subtitle": "Equal breathing • 6 min",
-      "mode": "HARMONY",
-      "icon": Icons.sync_rounded,
-      "color": const Color(0xFFFFB300), // Бурштиновий
-    },
-  ];
+  // 1. МЕТОД ДЛЯ ПОВІДОМЛЕНЬ
+  void _showNotifications() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: BoxDecoration(
+          color: const Color(0xFF121212),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Text(
+                "Notifications",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            // Список "фейкових" повідомлень для дизайну
+            _buildNotifyItem(
+              "New Session",
+              "Try the new 'Dream Weaver' for better sleep",
+              Icons.auto_awesome,
+            ),
+            _buildNotifyItem(
+              "Goal Reached",
+              "You've completed 3 days streak!",
+              Icons.military_tech,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotifyItem(String title, String sub, IconData icon) {
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: neonPink.withOpacity(0.1),
+        child: Icon(icon, color: neonPink, size: 20),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      subtitle: Text(
+        sub,
+        style: TextStyle(color: Colors.white.withOpacity(0.6)),
+      ),
+    );
+  }
 
   void _navigateToPlayer(Map<String, dynamic> technique) {
     Navigator.push(
@@ -78,6 +104,22 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 2. ЛОГІКА ФІЛЬТРАЦІЇ
+    String selectedCat = categories[activeCategoryIndex];
+
+    // Створюємо список для відображення
+    List<Map<String, dynamic>> filteredTechniques;
+
+    if (selectedCat == "All") {
+      // ЯКЩО "ALL" — БЕРЕМО ВЕСЬ СПИСОК БЕЗ ЖОДНИХ УМОВ
+      filteredTechniques = List.from(breathingTechniques);
+    } else {
+      // ІНАКШЕ — ФІЛЬТРУЄМО
+      filteredTechniques = breathingTechniques
+          .where((t) => t['category'] == selectedCat)
+          .toList();
+    }
+
     return SafeArea(
       bottom: false,
       child: SingleChildScrollView(
@@ -88,16 +130,20 @@ class _DashboardPageState extends State<DashboardPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-              _buildHeader(),
+              _buildHeader(), // Тут тепер працює кнопка
               const SizedBox(height: 24),
               _buildCategories(),
               const SizedBox(height: 28),
               _buildFeaturedCard(),
               const SizedBox(height: 32),
-              _buildRecentSessionsHeader(),
+              _buildRecentSessionsHeader(
+                filteredTechniques,
+              ), // Передаємо відфільтровані дані
               const SizedBox(height: 16),
-              _buildTechniquesList(),
-              const SizedBox(height: 120), // Відступ для нижнього меню
+              _buildTechniquesList(
+                filteredTechniques,
+              ), // Передаємо відфільтровані дані
+              const SizedBox(height: 120),
             ],
           ),
         ),
@@ -132,18 +178,24 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ],
         ),
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
-          ),
-          child: const Icon(
-            Icons.notifications_none_rounded,
-            color: Colors.white,
-            size: 24,
+        GestureDetector(
+          onTap: _showNotifications, // ВИКЛИК МЕНЮ
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withOpacity(0.1),
+                width: 1,
+              ),
+            ),
+            child: const Icon(
+              Icons.notifications_none_rounded,
+              color: Colors.white,
+              size: 24,
+            ),
           ),
         ),
       ],
@@ -319,7 +371,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildRecentSessionsHeader() {
+  Widget _buildRecentSessionsHeader(List<Map<String, dynamic>> currentData) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -332,22 +384,18 @@ class _DashboardPageState extends State<DashboardPage> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        // ЗРОБИЛИ КНОПКУ КЛІКАБЕЛЬНОЮ
         GestureDetector(
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
-                // Передаємо весь список на новий екран
                 builder: (context) =>
-                    AllTechniquesPage(techniques: breathingTechniques),
+                    AllTechniquesPage(techniques: currentData),
               ),
             );
           },
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: 4.0,
-            ), // Щоб легше було натиснути
+            padding: const EdgeInsets.symmetric(vertical: 4.0),
             child: Text(
               "VIEW ALL",
               style: TextStyle(
@@ -363,9 +411,10 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildTechniquesList() {
+  Widget _buildTechniquesList(List<Map<String, dynamic>> data) {
     return Column(
-      children: breathingTechniques.take(3).map((technique) {
+      // Ми просто перетворюємо кожну мапу з отриманого списку 'data' у віджет
+      children: data.map((technique) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 12.0),
           child: GestureDetector(
@@ -379,26 +428,29 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
               child: Row(
                 children: [
+                  // Іконка
                   Container(
                     width: 50,
                     height: 50,
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.3),
+                      color: (technique["color"] as Color? ?? Colors.grey)
+                          .withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      technique["icon"],
-                      color: technique["color"],
+                      technique["icon"] ?? Icons.air,
+                      color: technique["color"] ?? Colors.white,
                       size: 22,
                     ),
                   ),
                   const SizedBox(width: 16),
+                  // Тексти
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          technique["title"],
+                          technique["title"] ?? "",
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 15,
@@ -407,7 +459,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          technique["subtitle"],
+                          technique["subtitle"] ?? "",
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.5),
                             fontSize: 12,
