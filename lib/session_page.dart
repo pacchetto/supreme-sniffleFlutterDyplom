@@ -17,50 +17,34 @@ class _SessionPageState extends State<SessionPage>
   late Animation<double> _rotationAnimation;
 
   bool isPlaying = false;
-  double breathSpeed = 0.5; // Значення слайдера (0.0 до 1.0)
-  String breathPhase = "READY"; // INHALE, EXHALE, HOLD
+  double breathSpeed = 0.5;
+  String breathPhase = "READY";
+
+  late Map<String, int> pattern;
 
   @override
   void initState() {
     super.initState();
 
-    // Налаштовуємо анімацію дихання
-    _breathingController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 4), // Базовий час вдиху
+    pattern = Map<String, int>.from(
+      widget.techniqueData["pattern"] ??
+          {"inhale": 4, "hold": 2, "exhale": 4, "holdAfter": 2},
     );
+
+    // Створюємо контролер без фіксованої тривалості (ми будемо її міняти на льоту)
+    _breathingController = AnimationController(vsync: this);
 
     _scaleAnimation = Tween<double>(begin: 0.6, end: 1.2).animate(
       CurvedAnimation(
         parent: _breathingController,
-        curve: Curves.easeInOutSine,
+        curve: Curves.easeInOutQuart,
       ),
     );
 
+    // ДОДАНО: Ініціалізація обертання (щоб не було помилки LateInitializationError)
     _rotationAnimation = Tween<double>(begin: 0, end: 2 * pi).animate(
       CurvedAnimation(parent: _breathingController, curve: Curves.linear),
     );
-
-    // Слухаємо фази анімації, щоб змінювати текст
-    _breathingController.addStatusListener((status) {
-      if (status == AnimationStatus.forward) {
-        setState(() => breathPhase = "INHALE");
-      } else if (status == AnimationStatus.reverse) {
-        setState(() => breathPhase = "EXHALE");
-      } else if (status == AnimationStatus.completed) {
-        // Затримка на вершині (Hold)
-        setState(() => breathPhase = "HOLD");
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted && isPlaying) _breathingController.reverse();
-        });
-      } else if (status == AnimationStatus.dismissed) {
-        // Затримка внизу
-        setState(() => breathPhase = "HOLD");
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted && isPlaying) _breathingController.forward();
-        });
-      }
-    });
   }
 
   @override
@@ -69,16 +53,43 @@ class _SessionPageState extends State<SessionPage>
     super.dispose();
   }
 
+  // ГОЛОВНИЙ ЦИКЛ ДИХАННЯ
+  void _runBreathingCycle() async {
+    if (!isPlaying || !mounted) return;
+
+    // 1. ВДИХ
+    setState(() => breathPhase = "INHALE");
+    _breathingController.duration = Duration(seconds: pattern["inhale"]!);
+    await _breathingController.forward();
+    if (!isPlaying || !mounted) return;
+
+    // 2. ЗАТРИМКА (ВГОРІ)
+    if (pattern["hold"]! > 0) {
+      setState(() => breathPhase = "HOLD");
+      await Future.delayed(Duration(seconds: pattern["hold"]!));
+    }
+    if (!isPlaying || !mounted) return;
+
+    // 3. ВИДИХ
+    setState(() => breathPhase = "EXHALE");
+    _breathingController.duration = Duration(seconds: pattern["exhale"]!);
+    await _breathingController.reverse();
+    if (!isPlaying || !mounted) return;
+
+    // 4. ЗАТРИМКА (ВНИЗУ)
+    if (pattern["holdAfter"]! > 0) {
+      setState(() => breathPhase = "HOLD");
+      await Future.delayed(Duration(seconds: pattern["holdAfter"]!));
+    }
+
+    if (isPlaying && mounted) _runBreathingCycle();
+  }
+
   void _togglePlay() {
     setState(() {
       isPlaying = !isPlaying;
       if (isPlaying) {
-        if (_breathingController.status == AnimationStatus.dismissed ||
-            _breathingController.status == AnimationStatus.reverse) {
-          _breathingController.forward();
-        } else {
-          _breathingController.reverse();
-        }
+        _runBreathingCycle();
       } else {
         _breathingController.stop();
         breathPhase = "PAUSED";
@@ -86,14 +97,11 @@ class _SessionPageState extends State<SessionPage>
     });
   }
 
+  // Видаляємо стару логіку швидкості або залишаємо порожню функцію, щоб не було помилок в build
   void _updateSpeed(double value) {
     setState(() {
       breathSpeed = value;
-      // Змінюємо тривалість анімації в залежності від повзунка
-      // 0.0 = 8 секунд (повільно), 1.0 = 2 секунди (швидко)
-      int seconds = 8 - (value * 6).toInt();
-      _breathingController.duration = Duration(seconds: seconds);
-      _breathingController.reverseDuration = Duration(seconds: seconds);
+      // В цій версії швидкість жорстко прив'язана до патерну техніки.
     });
   }
 
@@ -109,7 +117,7 @@ class _SessionPageState extends State<SessionPage>
       body: SafeArea(
         child: Column(
           children: [
-            // ВЕРХНЯ ПАНЕЛЬ (App Bar)
+            // App Bar
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 16.0,
@@ -134,9 +142,6 @@ class _SessionPageState extends State<SessionPage>
                         decoration: BoxDecoration(
                           color: themeColor,
                           shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(color: themeColor, blurRadius: 5),
-                          ],
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -151,17 +156,14 @@ class _SessionPageState extends State<SessionPage>
                       ),
                     ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.more_horiz, color: Colors.white),
-                    onPressed: () {},
-                  ),
+                  const SizedBox(width: 48), // Заглушка для симетрії
                 ],
               ),
             ),
 
             const Spacer(),
 
-            // ТЕКСТ ВДИХ/ВИДИХ
+            // Фаза дихання
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
               child: Text(
@@ -188,7 +190,7 @@ class _SessionPageState extends State<SessionPage>
 
             const Spacer(),
 
-            // ЦЕНТРАЛЬНА АНІМАЦІЯ (Мандала)
+            // Мандала
             AnimatedBuilder(
               animation: _breathingController,
               builder: (context, child) {
@@ -200,7 +202,7 @@ class _SessionPageState extends State<SessionPage>
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        // Зовнішні кільця
+                        // Кільця та квадрати використовують _rotationAnimation
                         Transform.rotate(
                           angle: _rotationAnimation.value,
                           child: Container(
@@ -208,8 +210,6 @@ class _SessionPageState extends State<SessionPage>
                               shape: BoxShape.circle,
                               border: Border.all(
                                 color: themeColor.withOpacity(0.3),
-                                width: 1,
-                                style: BorderStyle.solid,
                               ),
                             ),
                           ),
@@ -217,26 +217,12 @@ class _SessionPageState extends State<SessionPage>
                         Transform.rotate(
                           angle: -_rotationAnimation.value,
                           child: Container(
-                            width: 200,
-                            height: 200,
+                            width: 180,
+                            height: 180,
                             decoration: BoxDecoration(
                               border: Border.all(
                                 color: const Color(0xFFC9A227).withOpacity(0.5),
-                                width: 1,
-                              ), // Золотистий квадрат
-                            ),
-                          ),
-                        ),
-                        Transform.rotate(
-                          angle: _rotationAnimation.value,
-                          child: Container(
-                            width: 200,
-                            height: 200,
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: themeColor.withOpacity(0.8),
-                                width: 1.5,
-                              ), // Рожевий квадрат
+                              ),
                             ),
                           ),
                         ),
@@ -265,157 +251,42 @@ class _SessionPageState extends State<SessionPage>
 
             const Spacer(),
 
-            // СЛАЙДЕР ШВИДКОСТІ
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40.0),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "SLOW",
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.4),
-                          fontSize: 10,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                      Text(
-                        "BREATH SPEED",
-                        style: TextStyle(
-                          color: themeColor,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                      Text(
-                        "FAST",
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.4),
-                          fontSize: 10,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  SliderTheme(
-                    data: SliderThemeData(
-                      activeTrackColor: themeColor,
-                      inactiveTrackColor: Colors.white.withOpacity(0.1),
-                      thumbColor: themeColor,
-                      trackHeight: 4,
-                      overlayColor: themeColor.withOpacity(0.2),
-                      thumbShape: const RoundSliderThumbShape(
-                        enabledThumbRadius: 8,
-                      ),
-                    ),
-                    child: Slider(value: breathSpeed, onChanged: _updateSpeed),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 30),
-
-            // ПАНЕЛЬ ПЛЕЄРА
+            // Панель плеєра
             Container(
               margin: const EdgeInsets.symmetric(
                 horizontal: 24.0,
-                vertical: 20.0,
+                vertical: 40.0,
               ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24.0,
-                vertical: 30.0,
-              ),
+              padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.03),
                 borderRadius: BorderRadius.circular(32),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
               ),
-              child: Column(
-                children: [
-                  // Прогрес бар
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: LinearProgressIndicator(
-                      value: 0.4, // Тут в майбутньому буде реальний прогрес
-                      backgroundColor: Colors.white.withOpacity(0.1),
-                      valueColor: AlwaysStoppedAnimation<Color>(themeColor),
-                      minHeight: 4,
+              child: Center(
+                child: GestureDetector(
+                  onTap: _togglePlay,
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: themeColor,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: themeColor.withOpacity(0.4),
+                          blurRadius: 30,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      isPlaying
+                          ? Icons.pause_rounded
+                          : Icons.play_arrow_rounded,
+                      color: Colors.white,
+                      size: 40,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "04:20",
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.5),
-                          fontSize: 12,
-                        ),
-                      ),
-                      Text(
-                        "10:00",
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.5),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  // Кнопки управління
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          Icons.replay_5_rounded,
-                          color: Colors.white.withOpacity(0.6),
-                          size: 32,
-                        ),
-                        onPressed: () {},
-                      ),
-                      GestureDetector(
-                        onTap: _togglePlay,
-                        child: Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: themeColor,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: themeColor.withOpacity(0.4),
-                                blurRadius: 30,
-                                spreadRadius: 5,
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            isPlaying
-                                ? Icons.pause_rounded
-                                : Icons.play_arrow_rounded,
-                            color: Colors.white,
-                            size: 40,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.forward_5_rounded,
-                          color: Colors.white.withOpacity(0.6),
-                          size: 32,
-                        ),
-                        onPressed: () {},
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
             ),
           ],
