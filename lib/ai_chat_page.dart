@@ -37,12 +37,12 @@ class _AiChatPageState extends State<AiChatPage> {
   // Твій API ключ OpenAI (для тестування краще тримати порожнім і використовувати заглушку)
   final String openAiKey = dotenv.env['GROQ_API_KEY'] ?? "";
 
-  // Функція відправки повідомлення
+  // 1. Функція відправки повідомлення
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    // 1. Додаємо повідомлення користувача в чат
+    // Додаємо повідомлення користувача в чат
     setState(() {
       _messages.add(ChatMessage(text: text, isAi: false));
       _isLoading = true; // Вмикаємо індикатор завантаження
@@ -51,10 +51,10 @@ class _AiChatPageState extends State<AiChatPage> {
     _controller.clear();
     _scrollToBottom();
 
-    // 2. Отримуємо відповідь (РЕАЛЬНИЙ ЗАПИТ ДО GROQ)
-    String aiResponse = await _fetchOpenAiResponse(text);
+    // Отримуємо відповідь (Передаємо історію, метод тепер без параметрів!)
+    String aiResponse = await _fetchOpenAiResponse();
 
-    // 3. Додаємо відповідь ШІ в чат
+    // Додаємо відповідь ШІ в чат
     setState(() {
       _messages.add(ChatMessage(text: aiResponse, isAi: true));
       _isLoading = false;
@@ -63,21 +63,96 @@ class _AiChatPageState extends State<AiChatPage> {
     _scrollToBottom();
   }
 
+  // 2. Окремий незалежний метод для очищення чату (тепер він лежить правильно на рівні класу)
+  void _clearChatHistory() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF151515),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: Colors.white.withOpacity(0.1)),
+          ),
+          title: const Text(
+            "Очистити чат?",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            "Уся історія повідомлень з Cyber Guide буде видалена безповоротно.",
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                "Скасувати",
+                style: TextStyle(color: Colors.white38),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _messages.clear();
+                  _messages.add(
+                    ChatMessage(
+                      text:
+                          "Привіт, Traveler. Я твій цифровий гід. Як ти почуваєшся сьогодні?",
+                      isAi: true,
+                    ),
+                  );
+                });
+                Navigator.pop(context);
+              },
+              child: const Text(
+                "Очистити",
+                style: TextStyle(
+                  color: Color(0xFFFF007F),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   String _getMockResponse(String userText) {
     userText = userText.toLowerCase();
     if (userText.contains("тривог") ||
         userText.contains("стрес") ||
         userText.contains("погано")) {
-      return "Розумію твій стан. Тривога — це природна реакція організму. Спробуй запустити сесію 'Box Breathing' на головному екрані. Це допоможе знизити рівень кортизолу.";
-    } else if (userText.contains("сон") || userText.contains("спати")) {
-      return "Проблеми зі сном часто виникають через перевантаження нервової системи. Рекомендую практику 'Zen Wave' перед тим, як лягти в ліжко.";
+      return "Розумію твій стан. ...";
     }
-    return "Я тут, щоб підтримати тебе. Зроби глибокий вдих. Бажаєш поговорити про це детальніше?";
+    return "Я тут, щоб підтримати тебе. ...";
   }
 
   // Реальний запит до Groq API
-  Future<String> _fetchOpenAiResponse(String prompt) async {
+  Future<String> _fetchOpenAiResponse() async {
     try {
+      // Конвертуємо історію твоїх повідомлень з екрана у формат для API
+      List<Map<String, String>> apiMessages = [
+        {
+          "role": "system",
+          "content": """
+          Ти — емпатійний професійний психолог та ментор. Твої пріоритети в суворому порядку: 
+          1. Активне слухання: валідуй емоції користувача, дай простір виговоритися без засудження та "токсичного позитиву".
+          2. Організація життя: м'яко допомагай структурувати проблеми, розставляти пріоритети та складати реалістичні плани дій через навідні запитання.
+          3. Суворе обмеження: пропонуй дихальні вправи чи медитації ЛИШЕ як найостанніший засіб або за прямим запитом користувача. 
+          Стиль: тепло, лаконічно, по суті. Завжди завершуй відповідь одним коротким запитанням, щоб підтримувати діалог.
+        """,
+        },
+      ];
+
+      // Проходимося по кожному повідомленню в інтерфейсі і додаємо в історію запиту
+      for (var msg in _messages) {
+        apiMessages.add({
+          "role": msg.isAi ? "assistant" : "user",
+          "content": msg.text,
+        });
+      }
+
       final response = await http.post(
         Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
         headers: {
@@ -85,16 +160,8 @@ class _AiChatPageState extends State<AiChatPage> {
           'Authorization': 'Bearer $openAiKey',
         },
         body: jsonEncode({
-          // ЗМІНЕНО НАЗВУ МОДЕЛІ НА АКТУАЛЬНУ:
           "model": "llama-3.1-8b-instant",
-          "messages": [
-            {
-              "role": "system",
-              "content":
-                  "Ти емпатійний, спокійний ШІ-психолог у додатку AetheriaGraph, який намагається допомогти користувачеві. Відповідай українською мовою коротко (1-3 речення). Пропонуй дихальні практики.",
-            },
-            {"role": "user", "content": prompt},
-          ],
+          "messages": apiMessages,
           "temperature": 0.7,
         }),
       );
@@ -103,11 +170,11 @@ class _AiChatPageState extends State<AiChatPage> {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
         return data['choices'][0]['message']['content'];
       } else {
-        // ВИВОДИМО РЕАЛЬНУ ПОМИЛКУ В КОНСОЛЬ (внизу екрану в Android Studio / VS Code)
         print("🚨 ПОМИЛКА GROQ: ${response.body}");
         return "Системи перевантажені. (Помилка API: ${response.statusCode})";
       }
     } catch (e) {
+      print("🚨 КРИТИЧНА ПОМИЛКА: $e");
       return "Втрачено зв'язок з нейромережею. Перевір інтернет.";
     }
   }
@@ -136,6 +203,15 @@ class _AiChatPageState extends State<AiChatPage> {
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.white70),
+            tooltip: "Очистити історію",
+            onPressed:
+                _clearChatHistory, // Тепер цей метод викликається без проблем
+          ),
+          const SizedBox(width: 8),
+        ],
         title: Column(
           children: [
             const Text(
@@ -171,7 +247,6 @@ class _AiChatPageState extends State<AiChatPage> {
       ),
       body: Column(
         children: [
-          // Список повідомлень
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
@@ -186,11 +261,8 @@ class _AiChatPageState extends State<AiChatPage> {
               },
             ),
           ),
-
-          // Поле вводу (Liquid Glass)
           SafeArea(
-            bottom:
-                true, // Захищає поле від перекриття системною смужкою (на iPhone тощо)
+            bottom: true,
             child: Padding(
               padding: const EdgeInsets.only(
                 bottom: 90,
@@ -201,7 +273,6 @@ class _AiChatPageState extends State<AiChatPage> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(25),
                 child: BackdropFilter(
-                  // Скляний ефект для SafeArea
                   filter: ImageFilter.blur(sigmaX: 1, sigmaY: 1),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -259,7 +330,6 @@ class _AiChatPageState extends State<AiChatPage> {
     );
   }
 
-  // Віджет окремого повідомлення
   Widget _buildMessage(String text, {required bool isAi}) {
     return Align(
       alignment: isAi ? Alignment.centerLeft : Alignment.centerRight,
@@ -297,7 +367,6 @@ class _AiChatPageState extends State<AiChatPage> {
     );
   }
 
-  // Віджет "ШІ друкує..."
   Widget _buildTypingIndicator() {
     return Align(
       alignment: Alignment.centerLeft,
