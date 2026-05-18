@@ -1,4 +1,5 @@
-import 'dart:math';
+import 'dart:async'; // Додано для роботи таймера сесії
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class SessionPage extends StatefulWidget {
@@ -11,16 +12,23 @@ class SessionPage extends StatefulWidget {
 }
 
 class _SessionPageState extends State<SessionPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
+  // Єдиний контролер для всього циклу дихання
   late AnimationController _breathingController;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _rotationAnimation;
+  // Контролер для крутіння мандали
+  late AnimationController _rotationController;
+
+  // Нотифікатор для зміни тексту фази БЕЗ викликання загального setState
+  final ValueNotifier<String> _phaseNotifier = ValueNotifier("READY");
+  // РАБОЧИЙ ТАЙМEР СЕСІЇ
+  Timer? _sessionTimer;
+  final ValueNotifier<int> _elapsedSecondsNotifier = ValueNotifier(0);
+  int get _totalSeconds => widget.techniqueData["durationSeconds"] ?? 300;
 
   bool isPlaying = false;
-  double breathSpeed = 0.5;
-  String breathPhase = "READY";
-
+  double breathSpeed = 1.0;
   late Map<String, int> pattern;
+  late double _totalDuration;
 
   @override
   void initState() {
@@ -28,96 +36,139 @@ class _SessionPageState extends State<SessionPage>
 
     pattern = Map<String, int>.from(
       widget.techniqueData["pattern"] ??
-          {"inhale": 4, "hold": 2, "exhale": 4, "holdAfter": 2},
+          {"inhale": 4, "hold": 7, "exhale": 8, "holdAfter": 0},
     );
 
-    // Створюємо контролер без фіксованої тривалості (ми будемо її міняти на льоту)
-    _breathingController = AnimationController(vsync: this);
+    // Рахуємо загальний час одного повного циклу в секундах
+    _totalDuration =
+        (pattern["inhale"]! +
+                pattern["hold"]! +
+                pattern["exhale"]! +
+                pattern["holdAfter"]!)
+            .toDouble();
 
-    _scaleAnimation = Tween<double>(begin: 0.6, end: 1.2).animate(
-      CurvedAnimation(
-        parent: _breathingController,
-        curve: Curves.easeInOutQuart,
+    _breathingController = AnimationController(
+      vsync: this,
+      duration: Duration(
+        milliseconds: ((_totalDuration / breathSpeed) * 1000).round(),
       ),
     );
 
-    // ДОДАНО: Ініціалізація обертання (щоб не було помилки LateInitializationError)
-    _rotationAnimation = Tween<double>(begin: 0, end: 2 * pi).animate(
-      CurvedAnimation(parent: _breathingController, curve: Curves.linear),
+    _rotationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 12),
     );
+
+    // СЛУХАЧ ДЛЯ ПЛАВНОЇ ЗМІНИ ТЕКСТУ ФАЗИ
+    _breathingController.addListener(() {
+      double t = _breathingController.value;
+      double inhaleEnd = pattern["inhale"]! / _totalDuration;
+      double holdEnd = (pattern["inhale"]! + pattern["hold"]!) / _totalDuration;
+      double exhaleEnd =
+          (pattern["inhale"]! + pattern["hold"]! + pattern["exhale"]!) /
+          _totalDuration;
+
+      String currentPhase = "READY";
+      if (t <= inhaleEnd) {
+        currentPhase = "INHALE";
+      } else if (t <= holdEnd) {
+        currentPhase = "HOLD";
+      } else if (t <= exhaleEnd) {
+        currentPhase = "EXHALE";
+      } else {
+        currentPhase = "HOLD";
+      }
+
+      if (_phaseNotifier.value != currentPhase) {
+        _phaseNotifier.value = currentPhase;
+      }
+    });
+
+    // Автоматичне безшовне зациклення анімації
+    _breathingController.addStatusListener((status) {
+      if (status == AnimationStatus.completed && isPlaying) {
+        _breathingController.forward(from: 0.0);
+      }
+    });
   }
 
   @override
   void dispose() {
     _breathingController.dispose();
+    _rotationController.dispose();
+    _phaseNotifier.dispose();
+    _sessionTimer?.cancel(); // Очищення таймера
+    _elapsedSecondsNotifier.dispose();
     super.dispose();
-  }
-
-  // ГОЛОВНИЙ ЦИКЛ ДИХАННЯ
-  void _runBreathingCycle() async {
-    if (!isPlaying || !mounted) return;
-
-    // 1. ВДИХ
-    setState(() => breathPhase = "INHALE");
-    _breathingController.duration = Duration(seconds: pattern["inhale"]!);
-    await _breathingController.forward();
-    if (!isPlaying || !mounted) return;
-
-    // 2. ЗАТРИМКА (ВГОРІ)
-    if (pattern["hold"]! > 0) {
-      setState(() => breathPhase = "HOLD");
-      await Future.delayed(Duration(seconds: pattern["hold"]!));
-    }
-    if (!isPlaying || !mounted) return;
-
-    // 3. ВИДИХ
-    setState(() => breathPhase = "EXHALE");
-    _breathingController.duration = Duration(seconds: pattern["exhale"]!);
-    await _breathingController.reverse();
-    if (!isPlaying || !mounted) return;
-
-    // 4. ЗАТРИМКА (ВНИЗУ)
-    if (pattern["holdAfter"]! > 0) {
-      setState(() => breathPhase = "HOLD");
-      await Future.delayed(Duration(seconds: pattern["holdAfter"]!));
-    }
-
-    if (isPlaying && mounted) _runBreathingCycle();
   }
 
   void _togglePlay() {
     setState(() {
       isPlaying = !isPlaying;
       if (isPlaying) {
-        _runBreathingCycle();
+        _rotationController.repeat();
+        _breathingController.forward(
+          from: _breathingController.value == 1.0
+              ? 0.0
+              : _breathingController.value,
+        );
+
+        // Запуск підрахунку часу плеєра
+        _sessionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          if (_elapsedSecondsNotifier.value < _totalSeconds) {
+            _elapsedSecondsNotifier.value++;
+          } else {
+            _togglePlay(); // Автопауза по завершенню 10 хвилин
+          }
+        });
       } else {
         _breathingController.stop();
-        breathPhase = "PAUSED";
+        _rotationController.stop();
+        _sessionTimer?.cancel(); // Зупинка таймера
+        _phaseNotifier.value = "PAUSED";
       }
     });
   }
 
-  // Видаляємо стару логіку швидкості або залишаємо порожню функцію, щоб не було помилок в build
-  void _updateSpeed(double value) {
-    setState(() {
-      breathSpeed = value;
-      // В цій версії швидкість жорстко прив'язана до патерну техніки.
-    });
+  // Форматування секунд у гарний вигляд ММ:СС
+  String _formatDuration(int totalSeconds) {
+    int minutes = totalSeconds ~/ 60;
+    int seconds = totalSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  // Математичний прорахунок прогресу стиснення/розширення для художника
+  double _calculateBreathingProgress(double globalValue) {
+    double inhaleEnd = pattern["inhale"]! / _totalDuration;
+    double holdEnd = (pattern["inhale"]! + pattern["hold"]!) / _totalDuration;
+    double exhaleEnd =
+        (pattern["inhale"]! + pattern["hold"]! + pattern["exhale"]!) /
+        _totalDuration;
+
+    if (globalValue <= inhaleEnd) {
+      return globalValue / inhaleEnd;
+    } else if (globalValue <= holdEnd) {
+      return 1.0;
+    } else if (globalValue <= exhaleEnd) {
+      double factor = (globalValue - holdEnd) / (exhaleEnd - holdEnd);
+      return 1.0 - factor;
+    } else {
+      return 0.0;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final Color themeColor =
-        widget.techniqueData["color"] ?? const Color(0xFFFF007F);
-    final String mode = widget.techniqueData["mode"] ?? "PRACTICE";
-    final String title = widget.techniqueData["title"] ?? "Breathwork Session";
+        widget.techniqueData["color"] ?? const Color(0xFF4AF2A1);
+    final String title = widget.techniqueData["title"] ?? "4-7-8 Relax";
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0510),
+      backgroundColor: const Color(0xFF09110F),
       body: SafeArea(
         child: Column(
           children: [
-            // App Bar
+            // ВЕРХНЯ ПАНЕЛЬ
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 16.0,
@@ -129,162 +180,254 @@ class _SessionPageState extends State<SessionPage>
                   IconButton(
                     icon: const Icon(
                       Icons.keyboard_arrow_down_rounded,
-                      color: Colors.white,
+                      color: Colors.white60,
                       size: 32,
                     ),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: themeColor,
-                          shape: BoxShape.circle,
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.03),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withOpacity(0.05)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: themeColor,
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        mode,
-                        style: TextStyle(
-                          color: themeColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
+                        const SizedBox(width: 8),
+                        const Text(
+                          "RELAXATION",
+                          style: TextStyle(
+                            color: Colors.white60,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1.5,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                  const SizedBox(width: 48), // Заглушка для симетрії
+                  const SizedBox(width: 48),
                 ],
               ),
             ),
 
-            const Spacer(),
+            const SizedBox(height: 10),
 
-            // Фаза дихання
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: Text(
-                breathPhase,
-                key: ValueKey<String>(breathPhase),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 48,
-                  fontWeight: FontWeight.w300,
-                  letterSpacing: 4.0,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title.toUpperCase(),
-              style: TextStyle(
-                color: themeColor.withOpacity(0.8),
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2.0,
-              ),
-            ),
-
-            const Spacer(),
-
-            // Мандала
-            AnimatedBuilder(
-              animation: _breathingController,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: _scaleAnimation.value,
-                  child: SizedBox(
-                    width: 250,
-                    height: 250,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Кільця та квадрати використовують _rotationAnimation
-                        Transform.rotate(
-                          angle: _rotationAnimation.value,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: themeColor.withOpacity(0.3),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Transform.rotate(
-                          angle: -_rotationAnimation.value,
-                          child: Container(
-                            width: 180,
-                            height: 180,
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: const Color(0xFFC9A227).withOpacity(0.5),
-                              ),
-                            ),
-                          ),
-                        ),
-                        // Пульсуюче ядро
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: themeColor,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: themeColor.withOpacity(0.6),
-                                blurRadius: 20 * _scaleAnimation.value,
-                                spreadRadius: 5 * _scaleAnimation.value,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+            // ТЕКСТ СТАНУ ДИХАННЯ
+            ValueListenableBuilder<String>(
+              valueListenable: _phaseNotifier,
+              builder: (context, phase, child) {
+                return AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: Text(
+                    phase,
+                    key: ValueKey<String>(phase),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 44,
+                      fontWeight: FontWeight.w300,
+                      letterSpacing: 8.0,
                     ),
                   ),
                 );
               },
             ),
-
-            const Spacer(),
-
-            // Панель плеєра
-            Container(
-              margin: const EdgeInsets.symmetric(
-                horizontal: 24.0,
-                vertical: 40.0,
+            const SizedBox(height: 4),
+            Text(
+              title.toUpperCase(),
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.4),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 2.0,
               ),
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.03),
-                borderRadius: BorderRadius.circular(32),
-              ),
+            ),
+
+            // АДАПТИВНИЙ КОНТЕЙНЕР ДЛЯ МАНДАЛИ (Твій оригінальний, недоторканий)
+            Expanded(
               child: Center(
-                child: GestureDetector(
-                  onTap: _togglePlay,
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: themeColor,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: themeColor.withOpacity(0.4),
-                          blurRadius: 30,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    double dynamicSize =
+                        math.min(constraints.maxWidth, constraints.maxHeight) *
+                        0.92;
+
+                    return AnimatedBuilder(
+                      animation: Listenable.merge([
+                        _breathingController,
+                        _rotationController,
+                      ]),
+                      builder: (context, child) {
+                        double breathProgress = _calculateBreathingProgress(
+                          _breathingController.value,
+                        );
+
+                        return CustomPaint(
+                          size: Size(dynamicSize, dynamicSize),
+                          painter: PremiumMandalaPainter(
+                            breathingProgress: breathProgress,
+                            rotationProgress: _rotationController.value,
+                            color: themeColor,
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            // ПАНЕЛЬ КЕРУВАННЯ ШВИДКІСТЮ
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32.0),
+              child: Column(
+                children: [
+                  Text(
+                    "BREATH SPEED",
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.3),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  Slider(
+                    value: breathSpeed,
+                    min: 0.5,
+                    max: 1.5,
+                    activeColor: themeColor,
+                    inactiveColor: Colors.white.withOpacity(0.05),
+                    onChanged: (value) {
+                      setState(() {
+                        breathSpeed = value;
+                        final double currentProgress =
+                            _breathingController.value;
+                        _breathingController.duration = Duration(
+                          milliseconds: ((_totalDuration / breathSpeed) * 1000)
+                              .round(),
+                        );
+                        if (isPlaying) {
+                          _breathingController.forward(from: currentProgress);
+                        }
+                      });
+                    },
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "STILL",
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.2),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          "DYNAMIC",
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.2),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
-                    child: Icon(
-                      isPlaying
-                          ? Icons.pause_rounded
-                          : Icons.play_arrow_rounded,
-                      color: Colors.white,
-                      size: 40,
-                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // РОБОЧИЙ ПРОГРЕС СЕСІЇ (Тепер рендериться ізольовано та біжить вперед)
+            Padding(
+              padding: const EdgeInsets.only(
+                left: 32.0,
+                right: 32.0,
+                top: 20.0,
+              ),
+              child: ValueListenableBuilder<int>(
+                valueListenable: _elapsedSecondsNotifier,
+                builder: (context, elapsed, child) {
+                  return Column(
+                    children: [
+                      LinearProgressIndicator(
+                        value: elapsed / _totalSeconds,
+                        backgroundColor: Colors.white.withOpacity(0.03),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          themeColor.withOpacity(0.6),
+                        ),
+                        minHeight: 2,
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _formatDuration(elapsed),
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.3),
+                              fontSize: 12,
+                            ),
+                          ),
+                          Text(
+                            _formatDuration(_totalSeconds),
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.3),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+
+            // ШИРОКА КНОПКА КЕРУВАННЯ (Замість старого рядка з трьома кнопками)
+            Padding(
+              padding: const EdgeInsets.only(
+                bottom: 24.0,
+                top: 16.0,
+                left: 32.0,
+                right: 32.0,
+              ),
+              child: GestureDetector(
+                onTap: _togglePlay,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  height: 62,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: isPlaying ? Colors.transparent : themeColor,
+                    borderRadius: BorderRadius.circular(31),
+                    border: Border.all(color: themeColor, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: themeColor.withOpacity(isPlaying ? 0.1 : 0.3),
+                        blurRadius: 20,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                    color: isPlaying ? themeColor : Colors.black87,
+                    size: 36,
                   ),
                 ),
               ),
@@ -293,5 +436,103 @@ class _SessionPageState extends State<SessionPage>
         ),
       ),
     );
+  }
+}
+
+// ХУДОЖНИК З МІКРО-ПУЛЬСАЦІЄЮ (Твій оригінальний, без змін)
+class PremiumMandalaPainter extends CustomPainter {
+  final double breathingProgress;
+  final double rotationProgress;
+  final Color color;
+
+  PremiumMandalaPainter({
+    required this.breathingProgress,
+    required this.rotationProgress,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final maxRadius = size.width / 2;
+
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+
+    final double smoothBreath = Curves.easeInOut.transform(breathingProgress);
+    final double microPulse = 0.02 * math.sin(rotationProgress * math.pi * 4);
+
+    for (int i = 1; i <= 8; i++) {
+      final path = Path();
+
+      double breathScale = 0.3 + (0.7 * smoothBreath) + microPulse;
+      double baseRadius = maxRadius * (i / 8) * breathScale;
+
+      if (baseRadius <= 5) continue;
+
+      int wavePoints = 3 + (i % 4);
+      double dynamicAmplitude =
+          (5.0 + (i * 2.2)) *
+          (0.8 + 0.5 * smoothBreath) *
+          (1.0 + 0.2 * math.sin(rotationProgress * math.pi * 2 + i));
+
+      double direction = i % 2 == 0 ? 1.0 : -1.0;
+      double currentRotation =
+          rotationProgress * 2 * math.pi * direction * (0.7 + i * 0.2);
+
+      for (int angleDegrees = 0; angleDegrees <= 360; angleDegrees += 2) {
+        double angleRadians = angleDegrees * math.pi / 180;
+
+        double waveModulation =
+            math.sin(angleRadians * wavePoints + currentRotation) +
+            0.35 * math.sin(angleRadians * (wavePoints * 2) - currentRotation);
+
+        double finalRadius = baseRadius + (waveModulation * dynamicAmplitude);
+
+        double x = center.dx + finalRadius * math.cos(angleRadians);
+        double y = center.dy + finalRadius * math.sin(angleRadians);
+
+        if (angleDegrees == 0) {
+          path.moveTo(x, y);
+        } else {
+          path.lineTo(x, y);
+        }
+      }
+      path.close();
+
+      paint.color = color.withOpacity(0.04 + (1.0 - (i / 8)) * 0.55);
+      canvas.drawPath(path, paint);
+    }
+
+    final innerGoldPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..color = Colors.amber.withOpacity(0.55);
+
+    double goldRadius = 20 + (45 * smoothBreath) + (microPulse * 40);
+    canvas.drawCircle(center, goldRadius, innerGoldPaint);
+
+    final corePaint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = color;
+
+    final coreRadius = 15.0 + (6.0 * smoothBreath) + (microPulse * 8);
+
+    final shadowPaint = Paint()
+      ..color = color.withOpacity(0.35)
+      ..maskFilter = MaskFilter.blur(
+        BlurStyle.normal,
+        22 * (smoothBreath + 0.5),
+      );
+
+    canvas.drawCircle(center, coreRadius + 14, shadowPaint);
+    canvas.drawCircle(center, coreRadius, corePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant PremiumMandalaPainter oldDelegate) {
+    return oldDelegate.breathingProgress != breathingProgress ||
+        oldDelegate.rotationProgress != rotationProgress;
   }
 }
