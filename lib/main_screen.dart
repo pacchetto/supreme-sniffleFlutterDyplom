@@ -1,10 +1,10 @@
 // lib/main_screen.dart
 
 import 'package:flutter/material.dart';
-import 'dart:ui'; // ВАЖЛИВО: Для ефекту розмиття стекла
+import 'dart:ui';
 import 'dashboard_page.dart';
 import 'ai_chat_page.dart';
-// import 'profile_page.dart'; // Розкоментуй, коли створиш
+import 'profile_page.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -20,10 +20,8 @@ class _MainScreenState extends State<MainScreen> {
   // Список екранів
   final List<Widget> _screens = [
     const DashboardPage(),
-    const AiChatPage(), // ТУТ ПРАЦЮЄ ВАШ ЧАТ!
-    const Center(
-      child: Text("Profile Page", style: TextStyle(color: Colors.white)),
-    ), // Заглушка
+    const AiChatPage(),
+    const ProfilePage(),
   ];
 
   @override
@@ -73,14 +71,11 @@ class _MainScreenState extends State<MainScreen> {
                               ), // Створюємо форму капсули
                               child: BackdropFilter(
                                 // Розмиття фону ПІД панеллю ( sigmaX і sigmaY)
-                                filter: ImageFilter.blur(
-                                  sigmaX: 10,
-                                  sigmaY: 10,
-                                ),
+                                filter: ImageFilter.blur(sigmaX: 6, sigmaY: 9),
                                 child: Container(
                                   decoration: BoxDecoration(
                                     // Колір "скла" (дуже світлий, напівпрозорий білий)
-                                    color: Colors.white.withOpacity(0.05),
+                                    color: neonPink.withOpacity(0.05),
                                     borderRadius: BorderRadius.circular(35),
                                     // Тонкий прозорий кордон (створює "відблиск" по краю)
                                     border: Border.all(
@@ -147,7 +142,7 @@ class _MainScreenState extends State<MainScreen> {
               shadows: isActive
                   ? [
                       BoxShadow(
-                        color: activeColor.withOpacity(0.8),
+                        color: neonPink.withOpacity(0.8),
                         blurRadius: 10,
                       ),
                     ]

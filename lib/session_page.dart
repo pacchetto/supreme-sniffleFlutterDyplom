@@ -118,7 +118,7 @@ class _SessionPageState extends State<SessionPage>
           if (_elapsedSecondsNotifier.value < _totalSeconds) {
             _elapsedSecondsNotifier.value++;
           } else {
-            _togglePlay(); // Автопауза по завершенню 10 хвилин
+            _togglePlay(); // Автопауза по завершенню
           }
         });
       } else {
@@ -162,284 +162,301 @@ class _SessionPageState extends State<SessionPage>
     final Color themeColor =
         widget.techniqueData["color"] ?? const Color(0xFF4AF2A1);
     final String title = widget.techniqueData["title"] ?? "4-7-8 Relax";
+    final double screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       backgroundColor: const Color(0xFF09110F),
       body: SafeArea(
-        child: Column(
-          children: [
-            // ВЕРХНЯ ПАНЕЛЬ
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 8.0,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      color: Colors.white60,
-                      size: 32,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.03),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white.withOpacity(0.05)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: themeColor,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          "RELAXATION",
-                          style: TextStyle(
-                            color: Colors.white60,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 48),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            // ТЕКСТ СТАНУ ДИХАННЯ
-            ValueListenableBuilder<String>(
-              valueListenable: _phaseNotifier,
-              builder: (context, phase, child) {
-                return AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: Text(
-                    phase,
-                    key: ValueKey<String>(phase),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 44,
-                      fontWeight: FontWeight.w300,
-                      letterSpacing: 8.0,
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 4),
-            Text(
-              title.toUpperCase(),
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.4),
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 2.0,
-              ),
-            ),
-
-            // АДАПТИВНИЙ КОНТЕЙНЕР ДЛЯ МАНДАЛИ (Твій оригінальний, недоторканий)
-            Expanded(
-              child: Center(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    double dynamicSize =
-                        math.min(constraints.maxWidth, constraints.maxHeight) *
-                        0.92;
-
-                    return AnimatedBuilder(
-                      animation: Listenable.merge([
-                        _breathingController,
-                        _rotationController,
-                      ]),
-                      builder: (context, child) {
-                        double breathProgress = _calculateBreathingProgress(
-                          _breathingController.value,
-                        );
-
-                        return CustomPaint(
-                          size: Size(dynamicSize, dynamicSize),
-                          painter: PremiumMandalaPainter(
-                            breathingProgress: breathProgress,
-                            rotationProgress: _rotationController.value,
-                            color: themeColor,
-                          ),
-                        );
-                      },
-                    );
-                  },
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            children: [
+              // ВЕРХНЯ ПАНЕЛЬ
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
                 ),
-              ),
-            ),
-
-            // ПАНЕЛЬ КЕРУВАННЯ ШВИДКІСТЮ
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32.0),
-              child: Column(
-                children: [
-                  Text(
-                    "BREATH SPEED",
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.3),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                  Slider(
-                    value: breathSpeed,
-                    min: 0.5,
-                    max: 1.5,
-                    activeColor: themeColor,
-                    inactiveColor: Colors.white.withOpacity(0.05),
-                    onChanged: (value) {
-                      setState(() {
-                        breathSpeed = value;
-                        final double currentProgress =
-                            _breathingController.value;
-                        _breathingController.duration = Duration(
-                          milliseconds: ((_totalDuration / breathSpeed) * 1000)
-                              .round(),
-                        );
-                        if (isPlaying) {
-                          _breathingController.forward(from: currentProgress);
-                        }
-                      });
-                    },
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "STILL",
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.2),
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          "DYNAMIC",
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.2),
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // РОБОЧИЙ ПРОГРЕС СЕСІЇ (Тепер рендериться ізольовано та біжить вперед)
-            Padding(
-              padding: const EdgeInsets.only(
-                left: 32.0,
-                right: 32.0,
-                top: 20.0,
-              ),
-              child: ValueListenableBuilder<int>(
-                valueListenable: _elapsedSecondsNotifier,
-                builder: (context, elapsed, child) {
-                  return Column(
-                    children: [
-                      LinearProgressIndicator(
-                        value: elapsed / _totalSeconds,
-                        backgroundColor: Colors.white.withOpacity(0.03),
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          themeColor.withOpacity(0.6),
-                        ),
-                        minHeight: 2,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: Colors.white60,
+                        size: 32,
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.03),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.05),
+                        ),
+                      ),
+                      child: Row(
                         children: [
-                          Text(
-                            _formatDuration(elapsed),
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.3),
-                              fontSize: 12,
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: themeColor,
+                              shape: BoxShape.circle,
                             ),
                           ),
-                          Text(
-                            _formatDuration(_totalSeconds),
+                          const SizedBox(width: 8),
+                          const Text(
+                            "RELAXATION",
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.3),
-                              fontSize: 12,
+                              color: Colors.white60,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.5,
                             ),
                           ),
                         ],
                       ),
-                    ],
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 10),
+
+              // ТЕКСТ СТАНУ ДИХАННЯ
+              ValueListenableBuilder<String>(
+                valueListenable: _phaseNotifier,
+                builder: (context, phase, child) {
+                  return AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: Text(
+                      phase,
+                      key: ValueKey<String>(phase),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 44,
+                        fontWeight: FontWeight.w300,
+                        letterSpacing: 8.0,
+                      ),
+                    ),
                   );
                 },
               ),
-            ),
-
-            // ШИРОКА КНОПКА КЕРУВАННЯ (Замість старого рядка з трьома кнопками)
-            Padding(
-              padding: const EdgeInsets.only(
-                bottom: 24.0,
-                top: 16.0,
-                left: 32.0,
-                right: 32.0,
+              const SizedBox(height: 4),
+              Text(
+                title.toUpperCase(),
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.4),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 2.0,
+                ),
               ),
-              child: GestureDetector(
-                onTap: _togglePlay,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  height: 62,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: isPlaying ? Colors.transparent : themeColor,
-                    borderRadius: BorderRadius.circular(31),
-                    border: Border.all(color: themeColor, width: 2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: themeColor.withOpacity(isPlaying ? 0.1 : 0.3),
-                        blurRadius: 20,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                    color: isPlaying ? themeColor : Colors.black87,
-                    size: 36,
+
+              const SizedBox(height: 20),
+
+              // АДАПТИВНИЙ КОНТЕЙНЕР ДЛЯ МАНДАЛИ (Замінено Expanded на SizedBox для сумісності зі скролом)
+              SizedBox(
+                height: screenWidth * 0.85,
+                width: screenWidth * 0.85,
+                child: Center(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      double dynamicSize =
+                          math.min(
+                            constraints.maxWidth,
+                            constraints.maxHeight,
+                          ) *
+                          0.92;
+
+                      return AnimatedBuilder(
+                        animation: Listenable.merge([
+                          _breathingController,
+                          _rotationController,
+                        ]),
+                        builder: (context, child) {
+                          double breathProgress = _calculateBreathingProgress(
+                            _breathingController.value,
+                          );
+
+                          return CustomPaint(
+                            size: Size(dynamicSize, dynamicSize),
+                            painter: PremiumMandalaPainter(
+                              breathingProgress: breathProgress,
+                              rotationProgress: _rotationController.value,
+                              color: themeColor,
+                            ),
+                          );
+                        },
+                      );
+                    },
                   ),
                 ),
               ),
-            ),
-          ],
+
+              const SizedBox(height: 30),
+
+              // ПАНЕЛЬ КЕРУВАННЯ ШВИДКІСТЮ
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                child: Column(
+                  children: [
+                    Text(
+                      "BREATH SPEED",
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.3),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    Slider(
+                      value: breathSpeed,
+                      min: 0.5,
+                      max: 1.5,
+                      activeColor: themeColor,
+                      inactiveColor: Colors.white.withOpacity(0.05),
+                      onChanged: (value) {
+                        setState(() {
+                          breathSpeed = value;
+                          final double currentProgress =
+                              _breathingController.value;
+                          _breathingController.duration = Duration(
+                            milliseconds:
+                                ((_totalDuration / breathSpeed) * 1000).round(),
+                          );
+                          if (isPlaying) {
+                            _breathingController.forward(from: currentProgress);
+                          }
+                        });
+                      },
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "STILL",
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.2),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            "DYNAMIC",
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.2),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // РОБОЧИЙ ПРОГРЕС СЕСІЇ
+              Padding(
+                padding: const EdgeInsets.only(
+                  left: 32.0,
+                  right: 32.0,
+                  top: 20.0,
+                ),
+                child: ValueListenableBuilder<int>(
+                  valueListenable: _elapsedSecondsNotifier,
+                  builder: (context, elapsed, child) {
+                    return Column(
+                      children: [
+                        LinearProgressIndicator(
+                          value: elapsed / _totalSeconds,
+                          backgroundColor: Colors.white.withOpacity(0.03),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            themeColor.withOpacity(0.6),
+                          ),
+                          minHeight: 2,
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _formatDuration(elapsed),
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.3),
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              _formatDuration(_totalSeconds),
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.3),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+
+              // ШИРОКА КНОПКА КЕРУВАННЯ
+              Padding(
+                padding: const EdgeInsets.only(
+                  bottom: 24.0,
+                  top: 16.0,
+                  left: 32.0,
+                  right: 32.0,
+                ),
+                child: GestureDetector(
+                  onTap: _togglePlay,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    height: 62,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: isPlaying ? Colors.transparent : themeColor,
+                      borderRadius: BorderRadius.circular(31),
+                      border: Border.all(color: themeColor, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: themeColor.withOpacity(isPlaying ? 0.1 : 0.3),
+                          blurRadius: 20,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      isPlaying
+                          ? Icons.pause_rounded
+                          : Icons.play_arrow_rounded,
+                      color: isPlaying ? themeColor : Colors.black87,
+                      size: 36,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// ХУДОЖНИК З МІКРО-ПУЛЬСАЦІЄЮ (Твій оригінальний, без змін)
+// ХУДОЖНИК З МІКРО-ПУЛЬСАЦІЄЮ
 class PremiumMandalaPainter extends CustomPainter {
   final double breathingProgress;
   final double rotationProgress;

@@ -2,6 +2,8 @@ import 'package:aetheria_graph_app/breathing_data.dart';
 import 'package:flutter/material.dart';
 import 'session_page.dart';
 import 'all_techniques_page.dart';
+// ignore: unused_import
+import 'profile_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
