@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'supabase_repository.dart';
 
 // ---------------------------------------------------------------------
 // 1. РЕПОЗИТОРІЙ ДЛЯ ЛОКАЛЬНОГО ЗБЕРЕЖЕННЯ ДАНИХ (ПРОДАКШЕН ВАРІАНТ)
@@ -80,7 +81,7 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  final CyberRepository _repository = CyberRepository();
+  final SupabaseRepository _repository = SupabaseRepository();
 
   // Стани, які будуть синхронізуватися з базою даних
   Map<String, double> _focusData = {};
