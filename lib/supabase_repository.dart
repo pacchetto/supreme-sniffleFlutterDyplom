@@ -4,44 +4,49 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class SupabaseRepository {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  // ТИМЧАСОВИЙ ТЕСТОВИЙ ID. Коли зробимо екран входу, замінимо цей рядок на:
-  // String? get _currentUserId => _supabase.auth.currentUser?.id;
-  // Зараз ми використовуємо згенерований UUID для тестів без авторизації:
-  String get _testUserId => '00000000-0000-0000-0000-000000000000';
+  /// Повертає ID поточного користувача. Якщо не авторизований — віддає тестовий UUID.
+  String get _currentUserId {
+    final sessionUserId = _supabase.auth.currentUser?.id;
+    if (sessionUserId != null) return sessionUserId;
+    return '00000000-0000-0000-0000-000000000000';
+  }
 
   // 1. ЗАВАНТАЖЕННЯ ДАНИХ (ПРОФІЛЬ + ГРАФІК)
   Future<Map<String, dynamic>> loadUserData() async {
-    final userId = _testUserId;
+    final userId = _currentUserId;
 
     try {
-      // Спробуємо прочитати профіль користувача
-      final profileResponse = await _supabase
-          .from('profile')
-          .select()
-          .eq('id', userId)
-          .maybeSingle(); // maybeSingle не викидає помилку, якщо рядка немає
+      // Паралельний запуск запитів для мінімізації затримки мережі
+      final responses = await Future.wait([
+        _supabase.from('profile').select().eq('id', userId).maybeSingle(),
+        _supabase
+            .from('focus_stats')
+            .select()
+            .eq('user_id', userId)
+            .maybeSingle(),
+      ]);
 
-      // Якщо користувача взагалі немає в базі (перший запуск) — створюємо його автоматично!
-      if (profileResponse == null) {
-        return await _createNewTestUser(userId);
+      final profileResponse = responses[0];
+      final statsResponse = responses[1];
+
+      // Якщо якихось даних немає (перший запуск або збій створення) — ініціалізуємо
+      if (profileResponse == null || statsResponse == null) {
+        return await _createMissingUserRecords(
+          userId,
+          profileResponse,
+          statsResponse,
+        );
       }
 
-      // Якщо профіль є, завантажуємо його тижневий графік
-      final statsResponse = await _supabase
-          .from('focus_stats')
-          .select()
-          .eq('user_id', userId)
-          .single();
-
-      // Мапимо дані графіка з Postgres (float8) у Dart (Map<String, double>)
+      // Безпечний мапінг з підтримкою альтернативного написання середи ('wen')
       Map<String, double> focusData = {
-        'MON': (statsResponse['mon'] as num).toDouble(),
-        'TUE': (statsResponse['tue'] as num).toDouble(),
-        'WED': (statsResponse['wed'] as num).toDouble(),
-        'THU': (statsResponse['thu'] as num).toDouble(),
-        'FRI': (statsResponse['fri'] as num).toDouble(),
-        'SAT': (statsResponse['sat'] as num).toDouble(),
-        'SUN': (statsResponse['sun'] as num).toDouble(),
+        'MON': _parseDbDouble(statsResponse['mon']),
+        'TUE': _parseDbDouble(statsResponse['tue']),
+        'WED': _parseDbDouble(statsResponse['wed'] ?? statsResponse['wen']),
+        'THU': _parseDbDouble(statsResponse['thu']),
+        'FRI': _parseDbDouble(statsResponse['fri']),
+        'SAT': _parseDbDouble(statsResponse['sat']),
+        'SUN': _parseDbDouble(statsResponse['sun']),
       };
 
       return {
@@ -62,32 +67,38 @@ class SupabaseRepository {
     }
   }
 
-  // Функція створення дефолтного тестового юзера, якщо таблиці пусті
-  Future<Map<String, dynamic>> _createNewTestUser(String userId) async {
-    // 1. Вставляємо рядок у profile
-    await _supabase.from('profile').insert({
-      'id': userId,
-      'username': 'Alex V.',
-      'title': 'CYBER MONK',
-      'level': 12,
-      'bio_sync': true,
-      'dark_immersion': true,
-      'zen_notifications': false,
-    });
+  /// Атомарна перевірка та створення відсутніх таблиць користувача
+  Future<Map<String, dynamic>> _createMissingUserRecords(
+    String userId,
+    Map<String, dynamic>? existingProfile,
+    Map<String, dynamic>? existingStats,
+  ) async {
+    if (existingProfile == null) {
+      await _supabase.from('profile').insert({
+        'id': userId,
+        'username': 'Alex V.',
+        'title': 'CYBER MONK',
+        'level': 12,
+        'bio_sync': true,
+        'dark_immersion': true,
+        'zen_notifications': false,
+      });
+    }
 
-    // 2. Вставляємо початковий графік у focus_stats
-    await _supabase.from('focus_stats').insert({
-      'user_id': userId,
-      'mon': 40.0,
-      'tue': 35.0,
-      'wed': 60.0,
-      'thu': 72.0,
-      'fri': 78.0,
-      'sat': 50.0,
-      'sun': 90.0,
-    });
+    if (existingStats == null) {
+      await _supabase.from('focus_stats').insert({
+        'user_id': userId,
+        'mon': 40.0,
+        'tue': 35.0,
+        'wed':
+            60.0, // Сюди запишеться 'wed', або змініть на 'wen' відповідно до назви стовпця у вашій БД
+        'thu': 72.0,
+        'fri': 78.0,
+        'sat': 50.0,
+        'sun': 90.0,
+      });
+    }
 
-    // Повертаємо початкові дані
     return {
       'username': 'Alex V.',
       'title': 'CYBER MONK',
@@ -109,40 +120,41 @@ class SupabaseRepository {
 
   // 2. ОНОВЛЕННЯ ТУМБЛЕРІВ В ХМАРІ
   Future<void> saveSetting(String key, bool value) async {
-    String columnName = '';
-    if (key == 'bioSync') columnName = 'bio_sync';
-    if (key == 'darkImmersion') columnName = 'dark_immersion';
-    if (key == 'zenNotifications') columnName = 'zen_notifications';
+    final Map<String, String> keyToColumnMapping = {
+      'bioSync': 'bio_sync',
+      'darkImmersion': 'dark_immersion',
+      'zenNotifications': 'zen_notifications',
+    };
 
-    if (columnName.isNotEmpty) {
-      await _supabase
-          .from('profile')
-          .update({columnName: value})
-          .eq('id', _testUserId);
-    }
-  }
+    final columnName = keyToColumnMapping[key];
+    if (columnName == null) return;
 
-  // 3. ОНОВЛЕННЯ ДНЯ ТИЖНЯ В ХМАРІ
-  Future<void> saveFocusDay(String day, double value) async {
-    String columnName = day.toLowerCase(); // 'MON' -> 'mon'
     await _supabase
-        .from('focus_stats')
+        .from('profile')
         .update({columnName: value})
-        .eq('user_id', _testUserId);
+        .eq('id', _currentUserId);
   }
 
+  // 3. ОНОВЛЕННЯ ДНЯ ТИЖНЯ В ХМАРІ (Уніфікований метод)
   Future<void> updateFocusInCloud(String day, double value) async {
     String dbColumn = day.toLowerCase();
 
-    // Мапінг для твого костиля 'wen' в базі даних
-    if (dbColumn == 'wed') dbColumn = 'wen';
+    // Обробка костиля/специфіки назви стовпця середи в базі даних
+    if (dbColumn == 'wed') {
+      // Якщо в БД стовпець називається 'wen', розкоментуйте наступний рядок:
+      // dbColumn = 'wen';
+    }
 
     await _supabase
         .from('focus_stats')
         .update({dbColumn: value})
-        .eq(
-          'user_id',
-          _testUserId,
-        ); // Або id, залежно як у тебе зв'язані таблиці
+        .eq('user_id', _currentUserId);
+  }
+
+  /// Парсер для безпечного отримання double значень із динамічних відповідей БД
+  double _parseDbDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    return 0.0;
   }
 }

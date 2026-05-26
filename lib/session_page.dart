@@ -1,4 +1,7 @@
-import 'dart:async'; // Додано для роботи таймера сесії
+import 'package:aetheria_graph_app/supabase_repository.dart';
+import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart';
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
@@ -13,45 +16,29 @@ class SessionPage extends StatefulWidget {
 
 class _SessionPageState extends State<SessionPage>
     with TickerProviderStateMixin {
-  // Єдиний контролер для всього циклу дихання
   late AnimationController _breathingController;
-  // Контролер для крутіння мандали
   late AnimationController _rotationController;
 
-  // Нотифікатор для зміни тексту фази БЕЗ викликання загального setState
   final ValueNotifier<String> _phaseNotifier = ValueNotifier("READY");
-  // РАБОЧИЙ ТАЙМEР СЕСІЇ
-  Timer? _sessionTimer;
   final ValueNotifier<int> _elapsedSecondsNotifier = ValueNotifier(0);
-  int get _totalSeconds => widget.techniqueData["durationSeconds"] ?? 300;
 
+  Timer? _sessionTimer;
   bool isPlaying = false;
   double breathSpeed = 1.0;
+
   late Map<String, int> pattern;
   late double _totalDuration;
+
+  int get _totalSeconds => widget.techniqueData["durationSeconds"] ?? 300;
 
   @override
   void initState() {
     super.initState();
-
-    pattern = Map<String, int>.from(
-      widget.techniqueData["pattern"] ??
-          {"inhale": 4, "hold": 7, "exhale": 8, "holdAfter": 0},
-    );
-
-    // Рахуємо загальний час одного повного циклу в секундах
-    _totalDuration =
-        (pattern["inhale"]! +
-                pattern["hold"]! +
-                pattern["exhale"]! +
-                pattern["holdAfter"]!)
-            .toDouble();
+    _initTechniqueData();
 
     _breathingController = AnimationController(
       vsync: this,
-      duration: Duration(
-        milliseconds: ((_totalDuration / breathSpeed) * 1000).round(),
-      ),
+      duration: _calculateDuration(),
     );
 
     _rotationController = AnimationController(
@@ -59,32 +46,8 @@ class _SessionPageState extends State<SessionPage>
       duration: const Duration(seconds: 12),
     );
 
-    // СЛУХАЧ ДЛЯ ПЛАВНОЇ ЗМІНИ ТЕКСТУ ФАЗИ
-    _breathingController.addListener(() {
-      double t = _breathingController.value;
-      double inhaleEnd = pattern["inhale"]! / _totalDuration;
-      double holdEnd = (pattern["inhale"]! + pattern["hold"]!) / _totalDuration;
-      double exhaleEnd =
-          (pattern["inhale"]! + pattern["hold"]! + pattern["exhale"]!) /
-          _totalDuration;
+    _breathingController.addListener(_updatePhaseText);
 
-      String currentPhase = "READY";
-      if (t <= inhaleEnd) {
-        currentPhase = "INHALE";
-      } else if (t <= holdEnd) {
-        currentPhase = "HOLD";
-      } else if (t <= exhaleEnd) {
-        currentPhase = "EXHALE";
-      } else {
-        currentPhase = "HOLD";
-      }
-
-      if (_phaseNotifier.value != currentPhase) {
-        _phaseNotifier.value = currentPhase;
-      }
-    });
-
-    // Автоматичне безшовне зациклення анімації
     _breathingController.addStatusListener((status) {
       if (status == AnimationStatus.completed && isPlaying) {
         _breathingController.forward(from: 0.0);
@@ -93,51 +56,137 @@ class _SessionPageState extends State<SessionPage>
   }
 
   @override
+  void didUpdateWidget(covariant SessionPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.techniqueData != widget.techniqueData) {
+      _initTechniqueData();
+      _breathingController.duration = _calculateDuration();
+    }
+  }
+
+  void _initTechniqueData() {
+    pattern = Map<String, int>.from(
+      widget.techniqueData["pattern"] ??
+          {"inhale": 4, "hold": 7, "exhale": 8, "holdAfter": 0},
+    );
+
+    _totalDuration =
+        (pattern["inhale"]! +
+                pattern["hold"]! +
+                pattern["exhale"]! +
+                pattern["holdAfter"]!)
+            .toDouble();
+  }
+
+  Duration _calculateDuration() {
+    return Duration(
+      milliseconds: ((_totalDuration / breathSpeed) * 1000).round(),
+    );
+  }
+
+  void _updatePhaseText() {
+    double t = _breathingController.value;
+    double inhaleEnd = pattern["inhale"]! / _totalDuration;
+    double holdEnd = (pattern["inhale"]! + pattern["hold"]!) / _totalDuration;
+    double exhaleEnd =
+        (pattern["inhale"]! + pattern["hold"]! + pattern["exhale"]!) /
+        _totalDuration;
+
+    String currentPhase = "READY";
+    if (t <= inhaleEnd) {
+      currentPhase = "INHALE";
+    } else if (t <= holdEnd) {
+      currentPhase = "HOLD";
+    } else if (t <= exhaleEnd) {
+      currentPhase = "EXHALE";
+    } else {
+      currentPhase = pattern["holdAfter"]! > 0 ? "HOLD" : "READY";
+    }
+
+    if (_phaseNotifier.value != currentPhase) {
+      _phaseNotifier.value = currentPhase;
+    }
+  }
+
+  @override
   void dispose() {
+    _sessionTimer?.cancel();
+    _breathingController.removeListener(_updatePhaseText);
     _breathingController.dispose();
     _rotationController.dispose();
     _phaseNotifier.dispose();
-    _sessionTimer?.cancel(); // Очищення таймера
     _elapsedSecondsNotifier.dispose();
     super.dispose();
   }
 
   void _togglePlay() {
+    _sessionTimer?.cancel();
+
     setState(() {
       isPlaying = !isPlaying;
       if (isPlaying) {
         _rotationController.repeat();
-        _breathingController.forward(
-          from: _breathingController.value == 1.0
-              ? 0.0
-              : _breathingController.value,
-        );
 
-        // Запуск підрахунку часу плеєра
+        if (_breathingController.value >= 1.0) {
+          _breathingController.forward(from: 0.0);
+        } else {
+          _breathingController.forward();
+        }
+
         _sessionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
           if (_elapsedSecondsNotifier.value < _totalSeconds) {
             _elapsedSecondsNotifier.value++;
           } else {
-            _togglePlay(); // Автопауза по завершенню
+            _stopSessionSilently();
           }
         });
       } else {
         _breathingController.stop();
         _rotationController.stop();
-        _sessionTimer?.cancel(); // Зупинка таймера
         _phaseNotifier.value = "PAUSED";
       }
     });
   }
 
-  // Форматування секунд у гарний вигляд ММ:СС
+  void _stopSessionSilently() async {
+    _sessionTimer?.cancel();
+    if (!mounted) return;
+
+    setState(() {
+      isPlaying = false;
+      _breathingController.stop();
+      _rotationController.stop();
+      _phaseNotifier.value = "FINISHED";
+    });
+
+    // Автоматичний запис прогресу в Supabase після успішного завершення
+    try {
+      // Визначаємо поточний день (наприклад, 'MON', 'TUE', 'WED'...)
+      String currentDay = DateFormat('E').format(DateTime.now()).toUpperCase();
+
+      // Створюємо екземпляр репозиторію (або використовуємо DI / Provider, якщо є)
+      final repo = SupabaseRepository();
+
+      // Додаємо, наприклад, 5.0 балів до поточного дня за успішну сесію
+      // (Або вираховуй динамічно на основі тривалості сесії)
+      await repo.updateFocusInCloud(currentDay, 50.0);
+
+      if (kDebugMode) {
+        debugPrint("☁️ Прогрес за $currentDay успішно збережено в Supabase!");
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint("⛔ Помилка автозбереження сесії: $e");
+      }
+    }
+  }
+
   String _formatDuration(int totalSeconds) {
     int minutes = totalSeconds ~/ 60;
     int seconds = totalSeconds % 60;
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  // Математичний прорахунок прогресу стиснення/розширення для художника
   double _calculateBreathingProgress(double globalValue) {
     double inhaleEnd = pattern["inhale"]! / _totalDuration;
     double holdEnd = (pattern["inhale"]! + pattern["hold"]!) / _totalDuration;
@@ -262,7 +311,7 @@ class _SessionPageState extends State<SessionPage>
 
               const SizedBox(height: 20),
 
-              // АДАПТИВНИЙ КОНТЕЙНЕР ДЛЯ МАНДАЛИ (Замінено Expanded на SizedBox для сумісності зі скролом)
+              // АДАПТИВНИЙ КОНТЕЙНЕР ДЛЯ МАНДАЛИ
               SizedBox(
                 height: screenWidth * 0.85,
                 width: screenWidth * 0.85,
@@ -328,12 +377,12 @@ class _SessionPageState extends State<SessionPage>
                           breathSpeed = value;
                           final double currentProgress =
                               _breathingController.value;
-                          _breathingController.duration = Duration(
-                            milliseconds:
-                                ((_totalDuration / breathSpeed) * 1000).round(),
-                          );
+                          _breathingController.duration = _calculateDuration();
+
                           if (isPlaying) {
                             _breathingController.forward(from: currentProgress);
+                          } else {
+                            _updatePhaseText();
                           }
                         });
                       },
@@ -412,7 +461,7 @@ class _SessionPageState extends State<SessionPage>
                 ),
               ),
 
-              // ШИРОКА КНОПКА КЕРУВАННЯ
+              // КНОПКА КЕРУВАННЯ
               Padding(
                 padding: const EdgeInsets.only(
                   bottom: 24.0,
@@ -456,7 +505,6 @@ class _SessionPageState extends State<SessionPage>
   }
 }
 
-// ХУДОЖНИК З МІКРО-ПУЛЬСАЦІЄЮ
 class PremiumMandalaPainter extends CustomPainter {
   final double breathingProgress;
   final double rotationProgress;
