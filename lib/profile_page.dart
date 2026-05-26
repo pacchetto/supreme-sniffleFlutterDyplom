@@ -1,17 +1,64 @@
 // ignore_for_file: deprecated_member_use
 
+import 'package:aetheria_graph_app/providers/user_data_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'supabase_repository.dart'; // Твій репозиторій Supabase
 import 'dart:async';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // ---------------------------------------------------------------------
-// 1. РЕПОЗИТОРІЙ ДЛЯ ЛОКАЛЬНОГО ЗБЕРЕЖЕННЯ ДАНИХ
+// 1. ГЛОВАЛЬНІ РІВЕРПОД-ПРОВАЙДЕРИ ДЛЯ ТЕМИ ТА СИНХРОНІЗАЦІЇ
+// ---------------------------------------------------------------------
+
+final darkImmersionProvider =
+    StateNotifierProvider<DarkImmersionNotifier, bool>((ref) {
+      return DarkImmersionNotifier();
+    });
+
+class DarkImmersionNotifier extends StateNotifier<bool> {
+  DarkImmersionNotifier() : super(true) {
+    _loadFromPrefs();
+  }
+
+  Future<void> _loadFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getBool('dark_immersion') ?? true;
+  }
+
+  Future<void> toggle(bool value) async {
+    state = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('dark_immersion', value);
+  }
+}
+
+final bioSyncProvider = StateNotifierProvider<BioSyncNotifier, bool>((ref) {
+  return BioSyncNotifier();
+});
+
+class BioSyncNotifier extends StateNotifier<bool> {
+  BioSyncNotifier() : super(true) {
+    _loadFromPrefs();
+  }
+
+  Future<void> _loadFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getBool('bio_sync') ?? true;
+  }
+
+  Future<void> toggle(bool value) async {
+    state = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('bio_sync', value);
+  }
+}
+
+// ---------------------------------------------------------------------
+// 2. РЕПОЗИТОРІЙ ДЛЯ ІНШИХ ДАНИХ (Zen, Focus)
 // ---------------------------------------------------------------------
 class CyberRepository {
-  static const String _keyBioSync = 'bio_sync';
-  static const String _keyDarkImmersion = 'dark_immersion';
   static const String _keyZenNotifications = 'zen_notifications';
   static const String _keyFocusPrefix = 'focus_level_';
   final SupabaseRepository _supabaseRepo = SupabaseRepository();
@@ -26,13 +73,9 @@ class CyberRepository {
     'SUN': 90.0,
   };
 
-  // Завантаження: тепер darkImmersion чітко читається як bool
-  Future<Map<String, dynamic>> loadUserData() async {
+  Future<Map<String, dynamic>> loadLocalData() async {
     final prefs = await SharedPreferences.getInstance();
 
-    bool bioSync = prefs.getBool(_keyBioSync) ?? true;
-    bool darkImmersion =
-        prefs.getBool(_keyDarkImmersion) ?? true; // Повертаємо bool
     bool zenNotifications = prefs.getBool(_keyZenNotifications) ?? false;
 
     Map<String, double> focusData = {};
@@ -41,31 +84,18 @@ class CyberRepository {
           prefs.getDouble('$_keyFocusPrefix$day') ?? _defaultFocus[day]!;
     }
 
-    return {
-      'bioSync': bioSync,
-      'darkImmersion': darkImmersion,
-      'zenNotifications': zenNotifications,
-      'focusData': focusData,
-    };
+    return {'zenNotifications': zenNotifications, 'focusData': focusData};
   }
 
-  // Збереження: darkImmersion пишеться як setBool
-  Future<void> saveSetting(String key, bool value) async {
+  Future<void> saveZenSetting(bool value) async {
     final prefs = await SharedPreferences.getInstance();
-    if (key == 'bioSync') await prefs.setBool(_keyBioSync, value);
-    if (key == 'darkImmersion') await prefs.setBool(_keyDarkImmersion, value);
-    if (key == 'zenNotifications') {
-      await prefs.setBool(_keyZenNotifications, value);
-    }
+    await prefs.setBool(_keyZenNotifications, value);
   }
 
-  // 2. Оновлюємо сам метод збереження дня
   Future<void> saveFocusDay(String day, double value) async {
-    // Локальне збереження (те, що у тебе вже було)
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('$_keyFocusPrefix$day', value);
 
-    // Відправка в Supabase хмару
     try {
       await _supabaseRepo.updateFocusInCloud(day, value);
     } catch (e) {
@@ -75,19 +105,18 @@ class CyberRepository {
 }
 
 // ---------------------------------------------------------------------
-// 2. ІНТЕРФЕЙС СТОРІНКИ ПРОФІЛЮ
+// 3. ІНТЕРФЕЙС СТОРІНКИ ПРОФІЛЮ
 // ---------------------------------------------------------------------
-class ProfilePage extends StatefulWidget {
+class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
 
   @override
-  State<ProfilePage> createState() => _ProfilePageState();
+  ConsumerState<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends ConsumerState<ProfilePage> {
   final CyberRepository _repository = CyberRepository();
 
-  // Захист графіка: ініціалізуємо базовою мапою, щоб FlChart не падав до завантаження з БД
   Map<String, double> _focusData = {
     'MON': 40.0,
     'TUE': 35.0,
@@ -98,8 +127,7 @@ class _ProfilePageState extends State<ProfilePage> {
     'SUN': 90.0,
   };
 
-  bool _bioSync = true;
-  bool _darkImmersion = true; // Знову bool
+  // Залишаємо локально тільки Zen режим, бо він не впливає на глобальний UI
   bool _zenNotifications = false;
 
   // --- Змінні міні-гри Geometry Dash ---
@@ -138,10 +166,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _initAppWithRealData() async {
     try {
-      final data = await _repository.loadUserData();
+      final data = await _repository.loadLocalData();
       setState(() {
-        _bioSync = data['bioSync'];
-        _darkImmersion = data['darkImmersion'];
         _zenNotifications = data['zenNotifications'];
         if (data['focusData'] != null &&
             (data['focusData'] as Map).isNotEmpty) {
@@ -155,15 +181,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  void _toggleSetting(String settingType, bool newValue) {
-    setState(() {
-      if (settingType == 'bioSync') _bioSync = newValue;
-      if (settingType == 'darkImmersion') _darkImmersion = newValue;
-      if (settingType == 'zenNotifications') _zenNotifications = newValue;
-    });
-    _repository.saveSetting(settingType, newValue);
-  }
-
   void _updateFocusData(String day, double value) {
     setState(() {
       _focusData[day] = value;
@@ -173,30 +190,65 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    // ЛОГІКА РОБОТИ DARK IMMERSION:
-    // Якщо увімкнено — повна AMOLED темрява (чорний). Якщо вимкнено — м'який темно-сірий.
-    final Color backgroundColor = _darkImmersion
+    // 1. Слухаємо дані з Supabase
+    final userDataAsync = ref.watch(userDataProvider);
+
+    // 2. Слухаємо глобальні стани теми через Riverpod
+    final isDarkImmersion = ref.watch(darkImmersionProvider);
+    final isBioSync = ref.watch(bioSyncProvider);
+
+    final Color backgroundColor = isDarkImmersion
         ? const Color(0xFF000000)
         : const Color(0xFF1A1A1A);
 
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
-        child: _isLoading
-            ? Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(neonPink),
-                ),
-              )
-            : _buildMainContent(),
+        child: userDataAsync.when(
+          loading: () => Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(neonPink),
+            ),
+          ),
+          error: (err, stack) => Center(
+            child: Text(
+              "Помилка з'єднання: $err",
+              style: TextStyle(color: neonPink),
+            ),
+          ),
+          data: (cloudData) {
+            final String username = cloudData['username'] ?? "Unknown User";
+            final String title = cloudData['title'] ?? "CYBER MONK";
+            final int level = cloudData['level'] ?? 1;
+
+            if (cloudData['focusData'] != null) {
+              _focusData = Map<String, double>.from(cloudData['focusData']);
+            }
+
+            // Передаємо глобальний стан `isBioSync` у контент-віджет
+            return _buildMainContent(
+              username,
+              title,
+              level,
+              isBioSync,
+              isDarkImmersion,
+            );
+          },
+        ),
       ),
       extendBody: true,
     );
   }
 
-  Widget _buildMainContent() {
-    // Логіка роботи Bio-Feedback Sync (неонове світіння або тьмяний режим)
-    final Color accentColor = _bioSync ? neonPink : Colors.white54;
+  Widget _buildMainContent(
+    String username,
+    String title,
+    int level,
+    bool isBioSync,
+    bool isDarkImmersion,
+  ) {
+    // Логіка роботи Bio-Feedback Sync тепер залежить від провайдера
+    final Color accentColor = isBioSync ? neonPink : Colors.white54;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -213,7 +265,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     shape: BoxShape.circle,
                     border: Border.all(color: accentColor, width: 2),
                     boxShadow: [
-                      if (_bioSync)
+                      if (isBioSync)
                         BoxShadow(
                           color: neonPink.withOpacity(0.3),
                           blurRadius: 15,
@@ -241,7 +293,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       border: Border.all(color: accentColor.withOpacity(0.5)),
                     ),
                     child: Text(
-                      "LVL 12",
+                      "LVL $level",
                       style: TextStyle(
                         color: accentColor,
                         fontSize: 10,
@@ -255,9 +307,9 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           const SizedBox(height: 25),
 
-          const Text(
-            "Alex V.",
-            style: TextStyle(
+          Text(
+            username,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -266,7 +318,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           const SizedBox(height: 4),
           Text(
-            "CYBER MONK",
+            title,
             style: TextStyle(
               color: accentColor,
               fontSize: 12,
@@ -276,7 +328,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           const SizedBox(height: 30),
 
-          // СТАТИСТИКА (Приглушується, якщо активовано Дзен-режим)
+          // СТАТИСТИКА
           Opacity(
             opacity: _zenNotifications ? 0.5 : 1.0,
             child: Row(
@@ -301,7 +353,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     height: 16,
                     decoration: BoxDecoration(
                       color: accentColor,
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(22),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -459,7 +511,6 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
 
-          // ІГРОВА ПАНЕЛЬ (активується після 7 тапів на версію додатка)
           if (_isDevMode) ...[
             const SizedBox(height: 20),
             _buildDataInputSection(),
@@ -481,26 +532,35 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           const SizedBox(height: 12),
 
+          // ТУМБЛЕР 1: Bio-Feedback Sync (Зв'язаний з Riverpod)
           _buildSettingsSwitch(
             icon: Icons.bar_chart_rounded,
             title: "Bio-Feedback Sync",
-            value: _bioSync,
-            onChanged: (val) => _toggleSetting('bioSync', val),
+            value: isBioSync,
+            onChanged: (val) {
+              ref.read(bioSyncProvider.notifier).toggle(val);
+            },
           ),
 
-          // Повернено назад у стан перемикача тумблера!
+          // ТУМБЛЕР 2: Dark Immersion (Зв'язаний з Riverpod)
           _buildSettingsSwitch(
             icon: Icons.dark_mode_outlined,
             title: "Dark Immersion",
-            value: _darkImmersion,
-            onChanged: (val) => _toggleSetting('darkImmersion', val),
+            value: isDarkImmersion,
+            onChanged: (val) {
+              ref.read(darkImmersionProvider.notifier).toggle(val);
+            },
           ),
 
+          // ТУМБЛЕР 3: Zen Notifications (Локальний)
           _buildSettingsSwitch(
             icon: Icons.notifications_off_outlined,
             title: "Zen Notifications",
             value: _zenNotifications,
-            onChanged: (val) => _toggleSetting('zenNotifications', val),
+            onChanged: (val) {
+              setState(() => _zenNotifications = val);
+              _repository.saveZenSetting(val);
+            },
           ),
           const SizedBox(height: 25),
 
@@ -562,7 +622,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
               ),
-              // ГРАВЕЦЬ (КУБ З ОБЕРТАННЯМ)
               AnimatedAlign(
                 duration: const Duration(milliseconds: 0),
                 alignment: Alignment(-0.6, 0.45 + _playerY),
@@ -595,7 +654,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
               ),
-              // СТИЛІЗОВАНА ПЕРЕШКОДА З ПОПЕРЕДНЬОГО КРОКУ
               AnimatedAlign(
                 duration: const Duration(milliseconds: 0),
                 alignment: Alignment(_obstacleX, 0.45),
@@ -701,15 +759,12 @@ class _ProfilePageState extends State<ProfilePage> {
         hoverColor: Colors.transparent,
         focusColor: Colors.transparent,
         switchTheme: SwitchThemeData(
-          overlayColor: MaterialStateProperty.all(Colors.transparent),
+          overlayColor: WidgetStateProperty.all(Colors.transparent),
         ),
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-
-        // 🎯 ОСЬ ЦЕЙ РЯДОК ОБРІЖЕ ВСІ СВІТЛІ КУТИ, ЩО ВИЛАЗЯТЬ:
         clipBehavior: Clip.antiAlias,
-
         decoration: BoxDecoration(
           color: const Color(0xFF101010),
           borderRadius: BorderRadius.circular(20),
@@ -732,7 +787,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // --- Ігрова логіка механіки перешкод ---
   void _startGame() {
     if (_gameStarted) return;
     setState(() {

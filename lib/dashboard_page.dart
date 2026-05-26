@@ -1,19 +1,19 @@
 import 'package:aetheria_graph_app/breathing_data.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'session_page.dart';
 import 'all_techniques_page.dart';
 // ignore: unused_import
 import 'profile_page.dart';
 
-class DashboardPage extends StatefulWidget {
+class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
 
   @override
-  State<DashboardPage> createState() => _DashboardPageState();
+  ConsumerState<DashboardPage> createState() => _DashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
-  final Color neonPink = const Color(0xFFFF007F);
+class _DashboardPageState extends ConsumerState<DashboardPage> {
   final List<String> categories = [
     "All",
     "Chill",
@@ -24,7 +24,7 @@ class _DashboardPageState extends State<DashboardPage> {
   int activeCategoryIndex = 0;
 
   // 1. МЕТОД ДЛЯ ПОВІДОМЛЕНЬ
-  void _showNotifications() {
+  void _showNotifications(Color activePink) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -58,16 +58,17 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
               ),
             ),
-            // Список "фейкових" повідомлень для дизайну
             _buildNotifyItem(
               "New Session",
               "Try the new 'Dream Weaver' for better sleep",
               Icons.auto_awesome,
+              activePink,
             ),
             _buildNotifyItem(
               "Goal Reached",
               "You've completed 3 days streak!",
               Icons.military_tech,
+              activePink,
             ),
           ],
         ),
@@ -75,11 +76,16 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildNotifyItem(String title, String sub, IconData icon) {
+  Widget _buildNotifyItem(
+    String title,
+    String sub,
+    IconData icon,
+    Color activePink,
+  ) {
     return ListTile(
       leading: CircleAvatar(
-        backgroundColor: neonPink.withOpacity(0.1),
-        child: Icon(icon, color: neonPink, size: 20),
+        backgroundColor: activePink.withOpacity(0.1),
+        child: Icon(icon, color: activePink, size: 20),
       ),
       title: Text(
         title,
@@ -95,7 +101,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  void _navigateToPlayer(Map<String, dynamic> technique) {
+  void _navigateToPlayer(Map<String, dynamic> technique, Color activePink) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -106,54 +112,66 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    // 2. ЛОГІКА ФІЛЬТРАЦІЇ
-    String selectedCat = categories[activeCategoryIndex];
+    // Отримуємо стани з провайдерів
+    final isDarkImmersion = ref.watch(darkImmersionProvider);
+    final isBioSync = ref.watch(bioSyncProvider);
 
-    // Створюємо список для відображення
+    // ДИНАМІЧНІ КОЛЬОРИ
+    // 1. Фон екрана залежить від Dark Immersion
+    final Color backgroundColor = isDarkImmersion
+        ? const Color(0xFF000000)
+        : const Color(0xFF121212);
+
+    // 2. Головний акцент залежить від BioSync
+    final Color currentPink = isBioSync
+        ? const Color(0xFFFF007F) // Яскравий кіберпанк неон
+        : const Color(
+            0xFF00E5FF,
+          ); // Спокійний бірюзовий неон (якщо BioSync вимкнено)
+
+    // ЛОГІКА ФІЛЬТРАЦІЇ
+    String selectedCat = categories[activeCategoryIndex];
     List<Map<String, dynamic>> filteredTechniques;
 
     if (selectedCat == "All") {
-      // ЯКЩО "ALL" — БЕРЕМО ВЕСЬ СПИСОК БЕЗ ЖОДНИХ УМОВ
       filteredTechniques = List.from(breathingTechniques);
     } else {
-      // ІНАКШЕ — ФІЛЬТРУЄМО
       filteredTechniques = breathingTechniques
           .where((t) => t['category'] == selectedCat)
           .toList();
     }
 
-    return SafeArea(
-      bottom: false,
-      child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              _buildHeader(), // Тут тепер працює кнопка
-              const SizedBox(height: 24),
-              _buildCategories(),
-              const SizedBox(height: 28),
-              _buildFeaturedCard(),
-              const SizedBox(height: 32),
-              _buildRecentSessionsHeader(
-                filteredTechniques,
-              ), // Передаємо відфільтровані дані
-              const SizedBox(height: 16),
-              _buildTechniquesList(
-                filteredTechniques,
-              ), // Передаємо відфільтровані дані
-              const SizedBox(height: 120),
-            ],
+    return Scaffold(
+      backgroundColor: backgroundColor, // Застосовуємо динамічний фон тут
+      body: SafeArea(
+        bottom: false,
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
+                _buildHeader(currentPink),
+                const SizedBox(height: 24),
+                _buildCategories(currentPink),
+                const SizedBox(height: 28),
+                _buildFeaturedCard(currentPink, isBioSync),
+                const SizedBox(height: 32),
+                _buildRecentSessionsHeader(filteredTechniques, currentPink),
+                const SizedBox(height: 16),
+                _buildTechniquesList(filteredTechniques, currentPink),
+                const SizedBox(height: 120),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(Color currentPink) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -163,7 +181,7 @@ class _DashboardPageState extends State<DashboardPage> {
             Text(
               "WELCOME BACK",
               style: TextStyle(
-                color: neonPink,
+                color: currentPink, // Динамічний колір
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.2,
@@ -181,7 +199,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ],
         ),
         GestureDetector(
-          onTap: _showNotifications, // ВИКЛИК МЕНЮ
+          onTap: () => _showNotifications(currentPink),
           child: Container(
             width: 48,
             height: 48,
@@ -204,7 +222,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildCategories() {
+  Widget _buildCategories(Color currentPink) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
@@ -224,12 +242,12 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 decoration: BoxDecoration(
                   color: activeCategoryIndex == index
-                      ? neonPink.withOpacity(0.1)
+                      ? currentPink.withOpacity(0.1)
                       : Colors.white.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: activeCategoryIndex == index
-                        ? neonPink.withOpacity(0.5)
+                        ? currentPink.withOpacity(0.5)
                         : Colors.transparent,
                   ),
                 ),
@@ -253,11 +271,10 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildFeaturedCard() {
+  Widget _buildFeaturedCard(Color currentPink, bool isBioSync) {
     return Container(
       height: 320,
       width: double.infinity,
-      // 1. ФОН: Тільки картинка та тінь
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(32),
         image: const DecorationImage(
@@ -266,13 +283,12 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: neonPink.withOpacity(0.15),
+            color: currentPink.withOpacity(0.15),
             blurRadius: 30,
             offset: const Offset(0, 10),
           ),
         ],
       ),
-
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
@@ -293,11 +309,11 @@ class _DashboardPageState extends State<DashboardPage> {
                     width: 6,
                     height: 6,
                     decoration: BoxDecoration(
-                      color: neonPink,
+                      color: currentPink,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: neonPink,
+                          color: currentPink,
                           blurRadius: 4,
                           spreadRadius: 1,
                         ),
@@ -305,9 +321,9 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Text(
-                    "LIVE GENERATION",
-                    style: TextStyle(
+                  Text(
+                    isBioSync ? "LIVE GENERATION" : "STANDARD FLOW",
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
@@ -329,18 +345,18 @@ class _DashboardPageState extends State<DashboardPage> {
             GestureDetector(
               onTap: () => _navigateToPlayer({
                 "title": "Daily Generative Flow",
-                "mode": "LIVE GENERATION",
-                "color": neonPink,
-              }),
+                "mode": isBioSync ? "LIVE GENERATION" : "STANDARD FLOW",
+                "color": currentPink,
+              }, currentPink),
               child: Container(
                 width: double.infinity,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: neonPink,
+                  color: currentPink,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: neonPink.withOpacity(0.4),
+                      color: currentPink.withOpacity(0.4),
                       blurRadius: 20,
                       offset: const Offset(0, 5),
                     ),
@@ -373,7 +389,10 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildRecentSessionsHeader(List<Map<String, dynamic>> currentData) {
+  Widget _buildRecentSessionsHeader(
+    List<Map<String, dynamic>> currentData,
+    Color currentPink,
+  ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -401,7 +420,7 @@ class _DashboardPageState extends State<DashboardPage> {
             child: Text(
               "VIEW ALL",
               style: TextStyle(
-                color: neonPink,
+                color: currentPink,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.0,
@@ -413,14 +432,16 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildTechniquesList(List<Map<String, dynamic>> data) {
+  Widget _buildTechniquesList(
+    List<Map<String, dynamic>> data,
+    Color currentPink,
+  ) {
     return Column(
-      // Ми просто перетворюємо кожну мапу з отриманого списку 'data' у віджет
       children: data.map((technique) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 12.0),
           child: GestureDetector(
-            onTap: () => _navigateToPlayer(technique),
+            onTap: () => _navigateToPlayer(technique, currentPink),
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -430,7 +451,6 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
               child: Row(
                 children: [
-                  // Іконка
                   Container(
                     width: 50,
                     height: 50,
@@ -446,7 +466,6 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  // Тексти
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
