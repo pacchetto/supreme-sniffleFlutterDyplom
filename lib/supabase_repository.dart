@@ -16,7 +16,7 @@ class SupabaseRepository {
     try {
       // Спробуємо прочитати профіль користувача
       final profileResponse = await _supabase
-          .from('profiles')
+          .from('profile')
           .select()
           .eq('id', userId)
           .maybeSingle(); // maybeSingle не викидає помилку, якщо рядка немає
@@ -64,8 +64,8 @@ class SupabaseRepository {
 
   // Функція створення дефолтного тестового юзера, якщо таблиці пусті
   Future<Map<String, dynamic>> _createNewTestUser(String userId) async {
-    // 1. Вставляємо рядок у profiles
-    await _supabase.from('profiles').insert({
+    // 1. Вставляємо рядок у profile
+    await _supabase.from('profile').insert({
       'id': userId,
       'username': 'Alex V.',
       'title': 'CYBER MONK',
@@ -116,7 +116,7 @@ class SupabaseRepository {
 
     if (columnName.isNotEmpty) {
       await _supabase
-          .from('profiles')
+          .from('profile')
           .update({columnName: value})
           .eq('id', _testUserId);
     }
@@ -129,5 +129,20 @@ class SupabaseRepository {
         .from('focus_stats')
         .update({columnName: value})
         .eq('user_id', _testUserId);
+  }
+
+  Future<void> updateFocusInCloud(String day, double value) async {
+    String dbColumn = day.toLowerCase();
+
+    // Мапінг для твого костиля 'wen' в базі даних
+    if (dbColumn == 'wed') dbColumn = 'wen';
+
+    await _supabase
+        .from('focus_stats')
+        .update({dbColumn: value})
+        .eq(
+          'user_id',
+          _testUserId,
+        ); // Або id, залежно як у тебе зв'язані таблиці
   }
 }
