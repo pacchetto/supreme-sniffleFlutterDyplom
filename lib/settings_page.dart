@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:ui'; // Обов'язково для ImageFilter (розмиття скла)
+import 'dart:ui';
 import 'auth_repository.dart';
 import 'auth_page.dart';
 
@@ -324,6 +324,7 @@ class SettingsPage extends ConsumerWidget {
     final Color currentBgColor = settings.isDarkImmersion
         ? const Color(0xFF000000)
         : const Color(0xFF1A1A1E);
+    final double statusBarHeight = MediaQuery.of(context).padding.top;
 
     // Робимо системну шторку девайса абсолютно прозорою
     SystemChrome.setSystemUIOverlayStyle(
@@ -338,81 +339,342 @@ class SettingsPage extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: currentBgColor,
-      body: SafeArea(
-        top: false, // Дозволяє контенту заходити під системний статус-бар
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          children: [
-            // ПРИДУМАНИЙ СКЛЯНИЙ ЕЛЕМЕНТ (LIQUID GLASS APP BAR)
-            Padding(
-              padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 10,
-                bottom: 15,
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(
-                    sigmaX: 15,
-                    sigmaY: 15,
-                  ), // Ефект розмиття за склом
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
+      body: Stack(
+        children: [
+          // 1. ОСНОВНИЙ КОНТЕНТ (ПРОКРУЧУЄТЬСЯ ПІД СКЛОМ)
+          ListView(
+            // Робимо верхній відступ більшим, щоб контент початково починався під скляним AppBar
+            padding: EdgeInsets.fromLTRB(20, statusBarHeight + 95, 20, 20),
+            children: [
+              // Блок зміни аватара
+              Center(
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 50,
+                      backgroundColor: Colors.white.withOpacity(0.06),
+                      backgroundImage: settings.avatarPath != null
+                          ? FileImage(File(settings.avatarPath!))
+                          : null,
+                      child: settings.avatarPath == null
+                          ? const Icon(
+                              Icons.person,
+                              size: 50,
+                              color: Colors.white24,
+                            )
+                          : null,
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(
-                        0.04,
-                      ), // Напівпрозоре скло
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(
-                          0.12,
-                        ), // Світловий відблиск по краю (грань скла)
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: primaryColor.withOpacity(
-                            0.08,
-                          ), // Легке неонове світіння зсередини ліквіду
-                          blurRadius: 20,
-                          spreadRadius: -5,
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: () => _changeAvatar(context, ref),
+                        child: Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: primaryColor,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.photo_camera,
+                            size: 16,
+                            color: Colors.white,
+                          ),
                         ),
-                      ],
+                      ),
                     ),
-                    child: Row(
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Блок зміни імені
+              // Блок зміни імені (Тепер ідеально відцентрований)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Opacity(
+                    opacity: 0,
+                    child: IconButton(
+                      icon: const Icon(Icons.mode_edit_outlined, size: 18),
+                      onPressed: null,
+                    ),
+                  ),
+                  const SizedBox(width: 4), // Дзеркальний відступ
+                  Text(
+                    settings.userName,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+
+                  IconButton(
+                    icon: const Icon(
+                      Icons.mode_edit_outlined,
+                      size: 18,
+                      color: Colors.white54,
+                    ),
+                    onPressed: () =>
+                        _openEditNameDialog(context, ref, settings.userName),
+                  ),
+                ],
+              ),
+
+              // Динамічна кнопка збереження
+              if (settings.hasUnsavedChanges) ...[
+                const SizedBox(height: 10),
+                Center(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    onPressed: () async {
+                      await ref
+                          .read(settingsProvider.notifier)
+                          .saveProfileChanges();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Профіль успішно збережено!"),
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.check, size: 18),
+                    label: const Text(
+                      "Зберегти зміни",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+
+              const Divider(color: Colors.white10, height: 35),
+
+              _buildCategoryHeader("Система та сповіщення"),
+              _buildCustomToggle(
+                title: "Сповіщення",
+                subtitle: "Дозволити push/local notifications",
+                value: settings.isNotificationsEnabled,
+                onChanged: (val) => ref
+                    .read(settingsProvider.notifier)
+                    .toggleNotifications(val),
+              ),
+              _buildCustomToggle(
+                title: "Звукові ефекти",
+                subtitle: "Активація системних звуків у додатку",
+                value: settings.isSoundsEnabled,
+                onChanged: (val) =>
+                    ref.read(settingsProvider.notifier).toggleSounds(val),
+              ),
+
+              const SizedBox(height: 16),
+              _buildCategoryHeader("Параметри занурення"),
+              _buildCustomToggle(
+                title: "Dark Immersion",
+                subtitle: "Абсолютно чорний колір фону матриці",
+                value: settings.isDarkImmersion,
+                onChanged: (val) => ref
+                    .read(settingsProvider.notifier)
+                    .toggleDarkImmersion(val),
+              ),
+              _buildCustomToggle(
+                title: "Bio Sync",
+                subtitle: "Біометрична синхронізація станів",
+                value: settings.isBioSync,
+                onChanged: (val) =>
+                    ref.read(settingsProvider.notifier).toggleBioSync(val),
+              ),
+              _buildCustomToggle(
+                title: "Режим розробника",
+                subtitle: "Активація логів та діагностики",
+                value: settings.isDevMode,
+                onChanged: (val) =>
+                    ref.read(settingsProvider.notifier).toggleDevMode(val),
+              ),
+
+              const Divider(color: Colors.white10, height: 45),
+
+              // Subscription Card
+              Card(
+                color: Colors.white.withOpacity(0.03),
+                margin: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: Colors.white.withOpacity(0.06)),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 3,
+                  ),
+                  leading: ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      colors: [Color(0xFFFF007F), Color(0xFF7000FF)],
+                    ).createShader(bounds),
+                    child: const Icon(
+                      Icons.workspace_premium,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                  ),
+                  title: const Text(
+                    "Subscription",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: const Text(
+                    "Управління преміум планами",
+                    style: TextStyle(color: Colors.white30, fontSize: 12),
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 14,
+                    color: Colors.white24,
+                  ),
+                  onTap: () => _showSubscriptionAlert(context),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Кнопка виходу з акаунта
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    side: BorderSide(color: Colors.redAccent.withOpacity(0.2)),
+                  ),
+                  backgroundColor: Colors.redAccent.withOpacity(0.02),
+                ),
+                onPressed: () => _handleLogout(context),
+                icon: const Icon(
+                  Icons.logout_rounded,
+                  color: Colors.redAccent,
+                  size: 20,
+                ),
+                label: const Text(
+                  "Вийти з акаунта",
+                  style: TextStyle(
+                    color: Colors.redAccent,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+
+          // 2. ФІКСОВАНИЙ ВЕРХНІЙ LIQUID GLASS APP BAR (ЗАВЖДИ НАВЕРХУ)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Column(
+              children: [
+                // Повністю прозорий заповнювач висоти статус-бару, щоб BackdropFilter затікав на самісінький верх
+                Container(height: statusBarHeight, color: Colors.transparent),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                  child: SizedBox(
+                    height:
+                        70, // Фіксована висота капсули як і у нижнього навбару
+                    child: Stack(
                       children: [
-                        // Кнопка назад всередині скла
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(30),
-                            onTap: () => Navigator.maybePop(context),
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Icon(
-                                Icons.arrow_back_ios_new_rounded,
-                                color: primaryColor, // Твій Neon Pink колір
-                                size: 20,
+                        // --- ЕФЕКТ LIQUID GLASS ---
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(35),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(
+                              sigmaX: 6,
+                              sigmaY: 9,
+                            ), // Розрахунок блуру копіює твій MainNavBar
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: const Color(
+                                  0xFFFF007F,
+                                ).withOpacity(0.05), // Твій neonPink відтінок
+                                borderRadius: BorderRadius.circular(35),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.12),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 30,
+                                    spreadRadius: 5,
+                                  ),
+                                ],
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        // Текст "Налаштування" всередині скла
-                        Text(
-                          "Налаштування",
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.95),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 19,
-                            letterSpacing: 0.5,
-                            shadows: [
-                              Shadow(
-                                color: primaryColor.withOpacity(0.3),
-                                blurRadius: 8,
+
+                        // --- ОНОВЛЕНИЙ КОНТЕНТ (Ідеальне центрування за допомогою Stack) ---
+                        SizedBox(
+                          width: double.infinity,
+                          height: 70,
+                          child: Stack(
+                            alignment: Alignment
+                                .center, // Центруємо текст по всій ширині барбару
+                            children: [
+                              // Стрілка назад (вирвана з потоку і притиснута ліворуч)
+                              Positioned(
+                                left: 10,
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(30),
+                                    splashColor: Colors
+                                        .transparent, // Вимикає ефект розмитих пікселів
+                                    highlightColor: Colors
+                                        .transparent, // Вимикає ефект затискання
+                                    onTap: () => Navigator.maybePop(context),
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(12.0),
+                                      child: Icon(
+                                        Icons.arrow_back_ios_new_rounded,
+                                        color: Colors.white,
+                                        size: 22,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              // Напис "Налаштування" (абсолютний центр)
+                              Text(
+                                "Налаштування",
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.95),
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 18,
+                                  letterSpacing: 0.5,
+                                  shadows: [
+                                    BoxShadow(
+                                      color: const Color(
+                                        0xFFFF007F,
+                                      ).withOpacity(0.6),
+                                      blurRadius: 10,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -421,232 +683,10 @@ class SettingsPage extends ConsumerWidget {
                     ),
                   ),
                 ),
-              ),
-            ),
-
-            const SizedBox(height: 25),
-
-            // Блок зміни аватара
-            Center(
-              child: Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.white.withOpacity(0.06),
-                    backgroundImage: settings.avatarPath != null
-                        ? FileImage(File(settings.avatarPath!))
-                        : null,
-                    child: settings.avatarPath == null
-                        ? const Icon(
-                            Icons.person,
-                            size: 50,
-                            color: Colors.white24,
-                          )
-                        : null,
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: GestureDetector(
-                      onTap: () => _changeAvatar(context, ref),
-                      child: Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: primaryColor,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.photo_camera,
-                          size: 16,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Блок зміни імені
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  settings.userName,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: const Icon(
-                    Icons.mode_edit_outlined,
-                    size: 18,
-                    color: Colors.white54,
-                  ),
-                  onPressed: () =>
-                      _openEditNameDialog(context, ref, settings.userName),
-                ),
               ],
             ),
-
-            // Динамічна кнопка збереження профилю
-            if (settings.hasUnsavedChanges) ...[
-              const SizedBox(height: 10),
-              Center(
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 10,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  onPressed: () async {
-                    await ref
-                        .read(settingsProvider.notifier)
-                        .saveProfileChanges();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Профіль успішно збережено!"),
-                        ),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.check, size: 18),
-                  label: const Text(
-                    "Зберегти зміни",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-
-            const Divider(color: Colors.white10, height: 35),
-
-            _buildCategoryHeader("Система та сповіщення"),
-            _buildCustomToggle(
-              title: "Сповіщення",
-              subtitle: "Дозволити push/local notifications",
-              value: settings.isNotificationsEnabled,
-              onChanged: (val) =>
-                  ref.read(settingsProvider.notifier).toggleNotifications(val),
-            ),
-            _buildCustomToggle(
-              title: "Звукові ефекти",
-              subtitle: "Активація системних звуків у додатку",
-              value: settings.isSoundsEnabled,
-              onChanged: (val) =>
-                  ref.read(settingsProvider.notifier).toggleSounds(val),
-            ),
-
-            const SizedBox(height: 16),
-            _buildCategoryHeader("Параметри занурення"),
-            _buildCustomToggle(
-              title: "Dark Immersion",
-              subtitle: "Абсолютно чорний колір фону матриці",
-              value: settings.isDarkImmersion,
-              onChanged: (val) =>
-                  ref.read(settingsProvider.notifier).toggleDarkImmersion(val),
-            ),
-            _buildCustomToggle(
-              title: "Bio Sync",
-              subtitle: "Біометрична синхронізація станів",
-              value: settings.isBioSync,
-              onChanged: (val) =>
-                  ref.read(settingsProvider.notifier).toggleBioSync(val),
-            ),
-            _buildCustomToggle(
-              title: "Режим розробника",
-              subtitle: "Активація логів та діагностики",
-              value: settings.isDevMode,
-              onChanged: (val) =>
-                  ref.read(settingsProvider.notifier).toggleDevMode(val),
-            ),
-
-            const Divider(color: Colors.white10, height: 45),
-
-            // Subscription Card
-            Card(
-              color: Colors.white.withOpacity(0.03),
-              margin: EdgeInsets.zero,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: Colors.white.withOpacity(0.06)),
-              ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 3,
-                ),
-                leading: ShaderMask(
-                  shaderCallback: (bounds) => const LinearGradient(
-                    colors: [Color(0xFFFF007F), Color(0xFF7000FF)],
-                  ).createShader(bounds),
-                  child: const Icon(
-                    Icons.workspace_premium,
-                    color: Colors.white,
-                    size: 26,
-                  ),
-                ),
-                title: const Text(
-                  "Subscription",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                subtitle: const Text(
-                  "Управління преміум планами",
-                  style: TextStyle(color: Colors.white30, fontSize: 12),
-                ),
-                trailing: const Icon(
-                  Icons.arrow_forward_ios,
-                  size: 14,
-                  color: Colors.white24,
-                ),
-                onTap: () => _showSubscriptionAlert(context),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Кнопка виходу з акаунта
-            TextButton.icon(
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  side: BorderSide(color: Colors.redAccent.withOpacity(0.2)),
-                ),
-                backgroundColor: Colors.redAccent.withOpacity(0.02),
-              ),
-              onPressed: () => _handleLogout(context),
-              icon: const Icon(
-                Icons.logout_rounded,
-                color: Colors.redAccent,
-                size: 20,
-              ),
-              label: const Text(
-                "Вийти з акаунта",
-                style: TextStyle(
-                  color: Colors.redAccent,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -701,12 +741,5 @@ class SettingsPage extends ConsumerWidget {
         ),
       ),
     );
-  }
-}
-
-// Допоміжне розширення для безпечних відступів зверху сторінки під ліквід-скло
-extension on EdgeInsets {
-  static double topNode(double mediaQueryTop, double fallback) {
-    return mediaQueryTop > 0 ? mediaQueryTop : fallback;
   }
 }

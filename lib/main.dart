@@ -33,6 +33,7 @@ class AetheriaApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
+        splashFactory: InkRipple.splashFactory,
         scaffoldBackgroundColor: const Color(0xFF1A1A1E), // Deep Black
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
