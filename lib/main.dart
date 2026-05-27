@@ -33,15 +33,44 @@ class AetheriaApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(
-          0xFF050505,
-        ), // Deep Black (ЗБЕРЕЖЕНО)
+        scaffoldBackgroundColor: const Color(0xFF1A1A1E), // Deep Black
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        hoverColor: Colors.transparent,
+
         textTheme: GoogleFonts.spaceGroteskTextTheme(
           ThemeData.dark().textTheme,
         ),
+
+        switchTheme: SwitchThemeData(
+          trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+
+          thumbIcon: WidgetStateProperty.all(
+            const Icon(Icons.clear, color: Colors.transparent, size: 0),
+          ),
+
+          // === ВБИВАЄМО РАМКУ/КРУЖОК ПРИ ЗАТИСКАННІ ТУМБЛЕРА ===
+          overlayColor: WidgetStateProperty.all(Colors.transparent),
+          splashRadius: 0,
+
+          thumbColor: WidgetStateProperty.resolveWith<Color>((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const Color(0xFFFF007F); // Neon Pink
+            }
+            return const Color(0xFF1A1A1E); // Сірий
+          }),
+
+          trackColor: WidgetStateProperty.resolveWith<Color>((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const Color(0xFFFF007F).withOpacity(0.25);
+            }
+            return Colors.white.withOpacity(0.1);
+          }),
+        ),
+
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFFF007F), // Neon Pink (ЗБЕРЕЖЕНО)
-          secondary: Color(0xFF7000FF), // Deep Purple (ЗБЕРЕЖЕНО)
+          primary: Color(0xFFFF007F), // Neon Pink
+          secondary: Color(0xFF7000FF), // Deep Purple
         ),
       ),
       // Замість статичного MainScreen ставимо динамічний шлюз перевірки авторизації

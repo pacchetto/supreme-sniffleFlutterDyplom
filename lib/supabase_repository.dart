@@ -42,7 +42,7 @@ class SupabaseRepository {
       Map<String, double> focusData = {
         'MON': _parseDbDouble(statsResponse['mon']),
         'TUE': _parseDbDouble(statsResponse['tue']),
-        'WED': _parseDbDouble(statsResponse['wed'] ?? statsResponse['wen']),
+        'wed': _parseDbDouble(statsResponse['wed'] ?? statsResponse['wen']),
         'THU': _parseDbDouble(statsResponse['thu']),
         'FRI': _parseDbDouble(statsResponse['fri']),
         'SAT': _parseDbDouble(statsResponse['sat']),
@@ -109,7 +109,7 @@ class SupabaseRepository {
       'focusData': {
         'MON': 40.0,
         'TUE': 35.0,
-        'WED': 60.0,
+        'wed': 60.0,
         'THU': 72.0,
         'FRI': 78.0,
         'SAT': 50.0,

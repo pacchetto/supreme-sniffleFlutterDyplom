@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:aetheria_graph_app/providers/user_data_provider.dart';
+import 'package:aetheria_graph_app/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,7 +10,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // ---------------------------------------------------------------------
-// 1. ГЛОВАЛЬНІ РІВЕРПОД-ПРОВАЙДЕРИ ДЛЯ ТЕМИ ТА СИНХРОНІЗАЦІЇ
+// 1. ГЛОБАЛЬНІ РІВЕРПОД-ПРОВАЙДЕРИ ДЛЯ ТЕМИ ТА СИНХРОНІЗАЦІЇ
 // ---------------------------------------------------------------------
 
 final darkImmersionProvider =
@@ -52,6 +53,19 @@ class BioSyncNotifier extends StateNotifier<bool> {
     state = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('bio_sync', value);
+  }
+}
+
+// НОВИЙ ПРОВАЙДЕР ДЛЯ РЕЖИМУ РОЗРОБНИКА (ЩОБ ЗВ'ЯЗАТИ НАЛАШТУВАННЯ ТА ГРУ)
+final devModeProvider = StateNotifierProvider<DevModeNotifier, bool>((ref) {
+  return DevModeNotifier();
+});
+
+class DevModeNotifier extends StateNotifier<bool> {
+  DevModeNotifier() : super(false);
+
+  void enable() {
+    state = true;
   }
 }
 
@@ -99,7 +113,7 @@ class CyberRepository {
     try {
       await _supabaseRepo.updateFocusInCloud(day, value);
     } catch (e) {
-      debugPrint("Не вдалося дублювати графік в хмару: $e");
+      debugPrint("Не вдалося дузвукувати графік в хмару: $e");
     }
   }
 }
@@ -127,7 +141,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     'SUN': 90.0,
   };
 
-  // Залишаємо локально тільки Zen режим, бо він не впливає на глобальний UI
   bool _zenNotifications = false;
 
   // --- Змінні міні-гри Geometry Dash ---
@@ -146,8 +159,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   bool _isLoading = true;
   String _selectedPeriod = '7D';
-  int _versionTapCount = 0;
-  bool _isDevMode = false;
 
   final Color neonPink = const Color(0xFFFF007F);
   int get _currentDayIndex => DateTime.now().weekday - 1;
@@ -190,12 +201,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Слухаємо дані з Supabase
     final userDataAsync = ref.watch(userDataProvider);
-
-    // 2. Слухаємо глобальні стани теми через Riverpod
     final isDarkImmersion = ref.watch(darkImmersionProvider);
     final isBioSync = ref.watch(bioSyncProvider);
+    final isDevMode = ref.watch(
+      devModeProvider,
+    ); // Слухаємо режим розробника тут
 
     final Color backgroundColor = isDarkImmersion
         ? const Color(0xFF000000)
@@ -222,21 +233,29 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             final int level = cloudData['level'] ?? 1;
 
             if (cloudData['focusData'] != null) {
-              _focusData = Map<String, double>.from(cloudData['focusData']);
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() {
+                    _focusData = Map<String, double>.from(
+                      cloudData['focusData'],
+                    );
+                  });
+                }
+              });
             }
 
-            // Передаємо глобальний стан `isBioSync` у контент-віджет
             return _buildMainContent(
               username,
               title,
               level,
               isBioSync,
               isDarkImmersion,
+              isDevMode, // Передаємо у контент сторінки
             );
           },
         ),
       ),
-      extendBody: true,
+      extendBody: false,
     );
   }
 
@@ -246,8 +265,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     int level,
     bool isBioSync,
     bool isDarkImmersion,
+    bool isDevMode,
   ) {
-    // Логіка роботи Bio-Feedback Sync тепер залежить від провайдера
     final Color accentColor = isBioSync ? neonPink : Colors.white54;
 
     return SingleChildScrollView(
@@ -511,7 +530,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ),
           ),
 
-          if (_isDevMode) ...[
+          // МІНІ-ГРА (З'ЯВЛЯЄТЬСЯ ТУТ, ЯКЩО АКТИВОВАНО З SETTINGS)
+          if (isDevMode) ...[
             const SizedBox(height: 20),
             _buildDataInputSection(),
           ],
@@ -532,7 +552,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
           const SizedBox(height: 12),
 
-          // ТУМБЛЕР 1: Bio-Feedback Sync (Зв'язаний з Riverpod)
+          // ТУМБЛЕР 1: Bio-Feedback Sync
           _buildSettingsSwitch(
             icon: Icons.bar_chart_rounded,
             title: "Bio-Feedback Sync",
@@ -542,7 +562,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             },
           ),
 
-          // ТУМБЛЕР 2: Dark Immersion (Зв'язаний з Riverpod)
+          // ТУМБЛЕР 2: Dark Immersion
           _buildSettingsSwitch(
             icon: Icons.dark_mode_outlined,
             title: "Dark Immersion",
@@ -552,7 +572,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             },
           ),
 
-          // ТУМБЛЕР 3: Zen Notifications (Локальний)
+          // ТУМБЛЕР 3: Zen Notifications
           _buildSettingsSwitch(
             icon: Icons.notifications_off_outlined,
             title: "Zen Notifications",
@@ -562,34 +582,56 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               _repository.saveZenSetting(val);
             },
           ),
-          const SizedBox(height: 25),
+          const SizedBox(height: 12),
 
-          // ТАП-ЗОНА ДЛЯ АКТИВАЦІЇ ІГРИ
+          // КНОПКА НАЛАШТУВАНЬ ВІДРАЗУ ПІД ZEN NOTIFICATIONS
           GestureDetector(
             onTap: () {
-              if (_isDevMode) return;
-              setState(() {
-                _versionTapCount++;
-                if (_versionTapCount >= 7) {
-                  _isDevMode = true;
-                }
-              });
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsPage()),
+              );
             },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Text(
-                _isDevMode
-                    ? "DEV MODE ACTIVE // SYNC ZONE ENABLED"
-                    : "v1.0.4 - PRODUCTION RUNTIME",
-                style: TextStyle(
-                  color: _isDevMode ? neonPink : Colors.white24,
-                  fontSize: 10,
-                  letterSpacing: 1,
+            child: Container(
+              width: double.infinity,
+              height: 56,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.05),
+                  width: 1,
                 ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.settings_outlined,
+                    color: isBioSync ? neonPink : Colors.white54,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    "Settings & Privacy",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: Colors.white24,
+                    size: 12,
+                  ),
+                ],
               ),
             ),
           ),
-          const SizedBox(height: 120),
+          const SizedBox(height: 80),
         ],
       ),
     );
@@ -752,37 +794,25 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
-    return Theme(
-      data: Theme.of(context).copyWith(
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-        hoverColor: Colors.transparent,
-        focusColor: Colors.transparent,
-        switchTheme: SwitchThemeData(
-          overlayColor: WidgetStateProperty.all(Colors.transparent),
-        ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: const Color(0xFF101010),
+        borderRadius: BorderRadius.circular(20),
       ),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: const Color(0xFF101010),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: SwitchListTile(
-          secondary: Icon(icon, color: value ? neonPink : Colors.white54),
-          title: Text(
-            title,
-            style: TextStyle(
-              color: Colors.white.withOpacity(value ? 1 : 0.5),
-              fontSize: 14,
-            ),
+      child: SwitchListTile(
+        secondary: Icon(icon, color: value ? neonPink : Colors.white54),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: Colors.white.withOpacity(value ? 1 : 0.5),
+            fontSize: 14,
           ),
-          value: value,
-          activeColor: neonPink,
-          trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
-          onChanged: onChanged,
         ),
+        value: value,
+        activeColor: neonPink,
+        onChanged: onChanged,
       ),
     );
   }
@@ -901,7 +931,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 class CyberSpikeClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
-    Path path = Path();
+    var path = Path();
     path.moveTo(size.width / 2, 0);
     path.lineTo(size.width, size.height);
     path.lineTo(0, size.height);

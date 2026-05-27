@@ -2,7 +2,9 @@
 
 import 'dart:convert';
 import 'dart:ui';
+import 'package:aetheria_graph_app/profile_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -13,14 +15,14 @@ class ChatMessage {
   ChatMessage({required this.text, required this.isAi});
 }
 
-class AiChatPage extends StatefulWidget {
+class AiChatPage extends ConsumerStatefulWidget {
   const AiChatPage({super.key});
 
   @override
-  State<AiChatPage> createState() => _AiChatPageState();
+  ConsumerState<AiChatPage> createState() => _AiChatPageState();
 }
 
-class _AiChatPageState extends State<AiChatPage> {
+class _AiChatPageState extends ConsumerState<AiChatPage> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
@@ -34,7 +36,7 @@ class _AiChatPageState extends State<AiChatPage> {
 
   bool _isLoading = false;
 
-  // Твій API ключ OpenAI (для тестування краще тримати порожнім і використовувати заглушку)
+  // Твій API ключ OpenAI
   final String openAiKey = dotenv.env['GROQ_API_KEY'] ?? "";
 
   // 1. Функція відправки повідомлення
@@ -42,19 +44,16 @@ class _AiChatPageState extends State<AiChatPage> {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    // Додаємо повідомлення користувача в чат
     setState(() {
       _messages.add(ChatMessage(text: text, isAi: false));
-      _isLoading = true; // Вмикаємо індикатор завантаження
+      _isLoading = true;
     });
 
     _controller.clear();
     _scrollToBottom();
 
-    // Отримуємо відповідь (Передаємо історію, метод тепер без параметрів!)
     String aiResponse = await _fetchOpenAiResponse();
 
-    // Додаємо відповідь ШІ в чат
     setState(() {
       _messages.add(ChatMessage(text: aiResponse, isAi: true));
       _isLoading = false;
@@ -63,8 +62,12 @@ class _AiChatPageState extends State<AiChatPage> {
     _scrollToBottom();
   }
 
-  // 2. Окремий незалежний метод для очищення чату (тепер він лежить правильно на рівні класу)
+  // 2. Метод для очищення чату (тепер колір кнопки динамічний)
   void _clearChatHistory() {
+    final theme = Theme.of(context);
+    final primaryColor =
+        theme.colorScheme.primary; // Отримуємо Neon Pink глобально
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -104,10 +107,10 @@ class _AiChatPageState extends State<AiChatPage> {
                 });
                 Navigator.pop(context);
               },
-              child: const Text(
+              child: Text(
                 "Очистити",
                 style: TextStyle(
-                  color: Color(0xFFFF007F),
+                  color: primaryColor, // ПІДКЛЮЧЕНО ДО ТЕМИ
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -118,20 +121,9 @@ class _AiChatPageState extends State<AiChatPage> {
     );
   }
 
-  String _getMockResponse(String userText) {
-    userText = userText.toLowerCase();
-    if (userText.contains("тривог") ||
-        userText.contains("стрес") ||
-        userText.contains("погано")) {
-      return "Розумію твій стан. ...";
-    }
-    return "Я тут, щоб підтримати тебе. ...";
-  }
-
   // Реальний запит до Groq API
   Future<String> _fetchOpenAiResponse() async {
     try {
-      // Конвертуємо історію твоїх повідомлень з екрана у формат для API
       List<Map<String, String>> apiMessages = [
         {
           "role": "system",
@@ -145,7 +137,6 @@ class _AiChatPageState extends State<AiChatPage> {
         },
       ];
 
-      // Проходимося по кожному повідомленню в інтерфейсі і додаємо в історію запиту
       for (var msg in _messages) {
         apiMessages.add({
           "role": msg.isAi ? "assistant" : "user",
@@ -193,8 +184,18 @@ class _AiChatPageState extends State<AiChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primaryColor = theme.colorScheme.primary;
+
+    // СИНХРОНІЗАЦІЯ ДИЗАЙНУ: Слухаємо той самий тумблер з налаштувань!
+    final isDarkImmersion = ref.watch(darkImmersionProvider);
+
+    // Визначаємо колір фону точно так само, як на сторінці налаштувань
+    final Color backgroundColor = isDarkImmersion
+        ? const Color(0xFF000000)
+        : const Color(0xFF1A1A1E);
     return Scaffold(
-      backgroundColor: const Color(0xFF050505),
+      backgroundColor: backgroundColor, // Використовуємо захищений колір фону
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -207,8 +208,7 @@ class _AiChatPageState extends State<AiChatPage> {
           IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.white70),
             tooltip: "Очистити історію",
-            onPressed:
-                _clearChatHistory, // Тепер цей метод викликається без проблем
+            onPressed: _clearChatHistory,
           ),
           const SizedBox(width: 8),
         ],
@@ -225,11 +225,11 @@ class _AiChatPageState extends State<AiChatPage> {
                   width: 8,
                   height: 8,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF007F),
+                    color: primaryColor,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFFF007F).withOpacity(0.5),
+                        color: primaryColor.withOpacity(0.5),
                         blurRadius: 5,
                       ),
                     ],
@@ -254,10 +254,14 @@ class _AiChatPageState extends State<AiChatPage> {
               itemCount: _messages.length + (_isLoading ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == _messages.length && _isLoading) {
-                  return _buildTypingIndicator();
+                  return _buildTypingIndicator(primaryColor);
                 }
                 final msg = _messages[index];
-                return _buildMessage(msg.text, isAi: msg.isAi);
+                return _buildMessage(
+                  msg.text,
+                  isAi: msg.isAi,
+                  primaryColor: primaryColor,
+                );
               },
             ),
           ),
@@ -305,16 +309,13 @@ class _AiChatPageState extends State<AiChatPage> {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFFFF007F).withOpacity(0.4),
+                                color: primaryColor.withOpacity(0.4),
                                 blurRadius: 10,
                               ),
                             ],
                           ),
                           child: IconButton(
-                            icon: const Icon(
-                              Icons.send,
-                              color: Color(0xFFFF007F),
-                            ),
+                            icon: Icon(Icons.send, color: primaryColor),
                             onPressed: _sendMessage,
                           ),
                         ),
@@ -330,7 +331,11 @@ class _AiChatPageState extends State<AiChatPage> {
     );
   }
 
-  Widget _buildMessage(String text, {required bool isAi}) {
+  Widget _buildMessage(
+    String text, {
+    required bool isAi,
+    required Color primaryColor,
+  }) {
     return Align(
       alignment: isAi ? Alignment.centerLeft : Alignment.centerRight,
       child: Container(
@@ -342,7 +347,7 @@ class _AiChatPageState extends State<AiChatPage> {
         decoration: BoxDecoration(
           color: isAi
               ? const Color(0xFF151515)
-              : const Color(0xFFFF007F).withOpacity(0.15),
+              : primaryColor.withOpacity(0.15), // ПІДКЛЮЧЕНО ДО ТЕМИ
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(20),
             topRight: const Radius.circular(20),
@@ -352,7 +357,7 @@ class _AiChatPageState extends State<AiChatPage> {
           border: Border.all(
             color: isAi
                 ? Colors.white.withOpacity(0.05)
-                : const Color(0xFFFF007F).withOpacity(0.5),
+                : primaryColor.withOpacity(0.5), // ПІДКЛЮЧЕНО ДО ТЕМИ
           ),
         ),
         child: Text(
@@ -367,7 +372,7 @@ class _AiChatPageState extends State<AiChatPage> {
     );
   }
 
-  Widget _buildTypingIndicator() {
+  Widget _buildTypingIndicator(Color primaryColor) {
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
@@ -378,10 +383,10 @@ class _AiChatPageState extends State<AiChatPage> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.white.withOpacity(0.05)),
         ),
-        child: const Text(
+        child: Text(
           "Cyber Guide аналізує...",
           style: TextStyle(
-            color: Color(0xFFFF007F),
+            color: primaryColor, // ПІДКЛЮЧЕНО ДО ТЕМИ
             fontStyle: FontStyle.italic,
             fontSize: 13,
           ),
