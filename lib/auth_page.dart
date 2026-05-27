@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'auth_repository.dart';
+import 'main_screen.dart'; // Додали імпорт головного екрана для гарантованого переходу
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -24,38 +25,117 @@ class _AuthPageState extends State<AuthPage> {
     super.dispose();
   }
 
+  // Функція гарантованого переходу на головну сторінку
+  void _navigateToHome() {
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const MainScreen()),
+      );
+    }
+  }
+
+  // === КАСТОМНЕ НЕОНОВЕ ДІАЛОГОВЕ ВІКНО ===
+  void _showCyberDialog({
+    required String title,
+    required String message,
+    required IconData icon,
+    required Color accentColor,
+  }) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: accentColor.withOpacity(0.4), width: 1.5),
+        ),
+        title: Row(
+          children: [
+            Icon(icon, color: accentColor, size: 22),
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                letterSpacing: 1.5,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 14,
+            height: 1.4,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(foregroundColor: accentColor),
+            child: const Text(
+              "ОК",
+              style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => isLoading = true);
+
+    final Color pinkColor = Theme.of(context).colorScheme.primary;
+    final Color purpleColor = Theme.of(context).colorScheme.secondary;
+
     try {
       if (isLoginMode) {
         await _authRepo.signInWithEmail(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
+        // Гарантовано перенаправляємо на головну сторінку після успішного входу
+        _navigateToHome();
       } else {
         await _authRepo.signUpWithEmail(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                "Перевірте пошту для підтвердження (якщо увімкнено вертифікацію)",
-              ),
-            ),
-          );
-        }
+
+        // Вікно успішної реєстрації у фіолетовому неоні
+        _showCyberDialog(
+          title: "ВЕРИФІКАЦІЯ",
+          message:
+              "Запит надіслано успішно. Будь ласка, перевірте вашу електронну пошту для активації акаунта перед тим, як увійти.",
+          icon: Icons.alternate_email_rounded,
+          accentColor: purpleColor,
+        );
       }
-      // Після успішного входу Supabase сам оновить стрім стану, додаток перенаправить юзера
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Помилка: ${e.toString()}")));
+      String friendlyMessage = e.toString();
+      if (friendlyMessage.contains("invalid_credentials") ||
+          friendlyMessage.contains("Invalid login credentials")) {
+        friendlyMessage =
+            "Невірний Email або пароль. Перевірте правильність введених даних.";
+      } else if (friendlyMessage.contains("network")) {
+        friendlyMessage = "Помилка мережі. Перевірте з'єднання з інтернетом.";
+      } else if (friendlyMessage.contains("User already registered")) {
+        friendlyMessage = "Цей користувач уже зареєстрований у системі.";
       }
+
+      _showCyberDialog(
+        title: "ПОМИЛКА ДОСТУПУ",
+        message: friendlyMessage,
+        icon: Icons.gpp_bad_outlined,
+        accentColor: pinkColor,
+      );
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -65,12 +145,16 @@ class _AuthPageState extends State<AuthPage> {
     setState(() => isLoading = true);
     try {
       await _authRepo.signInAnonymously();
+      // Гарантовано перенаправляємо на головну сторінку для гостей
+      _navigateToHome();
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Не вдалося увійти як гість: $e")),
-        );
-      }
+      final Color pinkColor = Theme.of(context).colorScheme.primary;
+      _showCyberDialog(
+        title: "ПОМИЛКА ГУЕСТА",
+        message: "Не вдалося ініціалізувати анонімний сеанс: ${e.toString()}",
+        icon: Icons.gpp_bad_outlined,
+        accentColor: pinkColor,
+      );
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -78,12 +162,10 @@ class _AuthPageState extends State<AuthPage> {
 
   @override
   Widget build(BuildContext context) {
-    final Color themeColor = const Color(
-      0xFF4AF2A1,
-    ); // Твій зелений Cyber колір
+    final Color pinkColor = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF09110F),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -94,12 +176,11 @@ class _AuthPageState extends State<AuthPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // ЛОГОТИП / ТИТУЛ
                   Text(
                     "CYBER MONK",
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: themeColor,
+                      color: pinkColor,
                       fontSize: 32,
                       fontWeight: FontWeight.w300,
                       letterSpacing: 6.0,
@@ -124,10 +205,11 @@ class _AuthPageState extends State<AuthPage> {
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     style: const TextStyle(color: Colors.white),
+                    cursorColor: pinkColor,
                     decoration: _buildInputDecoration(
                       "EMAIL",
                       Icons.alternate_email_rounded,
-                      themeColor,
+                      pinkColor,
                     ),
                     validator: (v) => v == null || !v.contains('@')
                         ? "Некоректний Email"
@@ -140,10 +222,11 @@ class _AuthPageState extends State<AuthPage> {
                     controller: _passwordController,
                     obscureText: true,
                     style: const TextStyle(color: Colors.white),
+                    cursorColor: pinkColor,
                     decoration: _buildInputDecoration(
                       "PASSWORD",
                       Icons.lock_outline_rounded,
-                      themeColor,
+                      pinkColor,
                     ),
                     validator: (v) => v == null || v.length < 6
                         ? "Пароль має бути від 6 символів"
@@ -151,11 +234,11 @@ class _AuthPageState extends State<AuthPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  // ГОЛОВНА КНОПКА (ВХІД / РЕЄСТРАЦІЯ)
+                  // ГОЛОВНА КНОПКА (ENTER)
                   ElevatedButton(
                     onPressed: isLoading ? null : _submit,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: themeColor,
+                      backgroundColor: pinkColor,
                       foregroundColor: Colors.black87,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -184,15 +267,14 @@ class _AuthPageState extends State<AuthPage> {
                   // ПЕРЕМИКАЧ РЕЖИМІВ
                   TextButton(
                     onPressed: () => setState(() => isLoginMode = !isLoginMode),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.white60,
+                    ),
                     child: Text(
                       isLoginMode
                           ? "NEW MONK? REGISTER HERE"
                           : "ALREADY HAVE AN ACCOUNT? LOGIN",
-                      style: TextStyle(
-                        color: Colors.white60,
-                        fontSize: 13,
-                        letterSpacing: 1,
-                      ),
+                      style: const TextStyle(fontSize: 13, letterSpacing: 1),
                     ),
                   ),
 
