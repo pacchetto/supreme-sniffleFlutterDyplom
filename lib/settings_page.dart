@@ -6,9 +6,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:ui';
 import 'auth_repository.dart';
 import 'auth_page.dart';
+import 'package:aetheria_graph_app/providers/user_data_provider.dart';
 
 // ==========================================
 // 1. ШАР ДАНИХ ТА БІЗНЕС-ЛОГІКИ (RIVERPOD)
@@ -23,6 +25,7 @@ class SettingsState {
   final bool isBioSync;
   final bool isDevMode;
   final bool hasUnsavedChanges;
+  final bool isLoading; // Додали стан завантаження для UI
 
   SettingsState({
     required this.userName,
@@ -33,6 +36,7 @@ class SettingsState {
     required this.isBioSync,
     required this.isDevMode,
     this.hasUnsavedChanges = false,
+    this.isLoading = false,
   });
 
   SettingsState copyWith({
@@ -44,6 +48,7 @@ class SettingsState {
     bool? isBioSync,
     bool? isDevMode,
     bool? hasUnsavedChanges,
+    bool? isLoading,
   }) {
     return SettingsState(
       userName: userName ?? this.userName,
@@ -55,12 +60,15 @@ class SettingsState {
       isBioSync: isBioSync ?? this.isBioSync,
       isDevMode: isDevMode ?? this.isDevMode,
       hasUnsavedChanges: hasUnsavedChanges ?? this.hasUnsavedChanges,
+      isLoading: isLoading ?? this.isLoading,
     );
   }
 }
 
 class SettingsNotifier extends StateNotifier<SettingsState> {
-  SettingsNotifier()
+  final Ref ref; // Додали ref, щоб керувати іншими провайдерами
+
+  SettingsNotifier(this.ref)
     : super(
         SettingsState(
           userName: "Traveler",
@@ -99,15 +107,88 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     return true;
   }
 
-  Future<void> saveProfileChanges() async {
+  String? getLastError() => _lastErrorMessage;
+
+  String? _lastErrorMessage;
+
+  // --- ОНОВЛЕНИЙ МЕТОД: ВІДПРАВКА ДАНИХ У SUPABASE ---
+  Future<bool> saveProfileChanges() async {
+    state = state.copyWith(isLoading: true);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('user_name', state.userName);
-    if (state.avatarPath != null) {
-      await prefs.setString('avatar_path', state.avatarPath!);
-    } else {
-      await prefs.remove('avatar_path');
+    final supabase = Supabase.instance.client;
+    final userId = supabase.auth.currentUser?.id;
+
+    if (userId == null) {
+      _lastErrorMessage = "Користувач не авторизований";
+      state = state.copyWith(isLoading: false);
+      return false;
     }
-    state = state.copyWith(hasUnsavedChanges: false);
+
+    String? remoteAvatarUrl;
+
+    try {
+      // 1. Якщо аватар змінився (і це локальний шлях до файлу, а не http посилання)
+      if (state.avatarPath != null && !state.avatarPath!.startsWith('http')) {
+        final file = File(state.avatarPath!);
+        // Назва файлу в сховищі: id_користувача/avatar_таймстамп.png
+        final fileName =
+            '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.png';
+
+        try {
+          // Завантажуємо у бакет 'avatars' (переконайся, що створив його в Supabase console)
+          await supabase.storage
+              .from('avatars')
+              .upload(
+                fileName,
+                file,
+                fileOptions: const FileOptions(upsert: true),
+              );
+
+          // Отримуємо пряме публічне посилання на завантажений файл
+          remoteAvatarUrl = supabase.storage
+              .from('avatars')
+              .getPublicUrl(fileName);
+        } catch (storageError) {
+          _lastErrorMessage =
+              "Помилка завантаження аватару: ${storageError.toString()}";
+          debugPrint("Storage Error: $storageError");
+          throw storageError;
+        }
+      }
+
+      // 2. Оновлюємо текстові дані користувача в таблиці 'profiles'
+      final Map<String, dynamic> updates = {'username': state.userName};
+
+      // Якщо фото завантажилось — додаємо його URL в запит оновлення БД
+      if (remoteAvatarUrl != null) {
+        updates['avatar_url'] = remoteAvatarUrl;
+      }
+
+      try {
+        await supabase.from('profile').update(updates).eq('id', userId);
+      } catch (dbError) {
+        _lastErrorMessage = "Помилка оновлення профілю: ${dbError.toString()}";
+        debugPrint("Database Error: $dbError");
+        throw dbError;
+      }
+
+      // 3. Дублюємо збереження локально (про всяк випадок)
+      await prefs.setString('user_name', state.userName);
+      if (state.avatarPath != null) {
+        await prefs.setString('avatar_path', state.avatarPath!);
+      }
+
+      state = state.copyWith(hasUnsavedChanges: false, isLoading: false);
+
+      // 4. КРИТИЧНО: Скидаємо кеш профілю, щоб ProfilePage моментально завантажив нові дані
+      ref.invalidate(userDataProvider);
+
+      return true;
+    } catch (e) {
+      debugPrint("Помилка синхронізації з Supabase: $e");
+      state = state.copyWith(isLoading: false);
+      return false;
+    }
   }
 
   Future<void> toggleNotifications(bool value) async {
@@ -142,7 +223,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
 }
 
 final settingsProvider = StateNotifierProvider<SettingsNotifier, SettingsState>(
-  (ref) => SettingsNotifier(),
+  (ref) => SettingsNotifier(ref), // Передаємо ref у конструктор нотіфаєра
 );
 
 // ==========================================
@@ -212,8 +293,9 @@ class SettingsPage extends ConsumerWidget {
               ),
             ),
             validator: (value) {
-              if (value == null || value.trim().isEmpty)
+              if (value == null || value.trim().isEmpty) {
                 return "Ім'я не може бути порожнім";
+              }
               if (value.trim().length > 30) return "Максимум 30 символів";
               return null;
             },
@@ -326,7 +408,6 @@ class SettingsPage extends ConsumerWidget {
         : const Color(0xFF1A1A1E);
     final double statusBarHeight = MediaQuery.of(context).padding.top;
 
-    // Робимо системну шторку девайса абсолютно прозорою
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -341,9 +422,7 @@ class SettingsPage extends ConsumerWidget {
       backgroundColor: currentBgColor,
       body: Stack(
         children: [
-          // 1. ОСНОВНИЙ КОНТЕНТ (ПРОКРУЧУЄТЬСЯ ПІД СКЛОМ)
           ListView(
-            // Робимо верхній відступ більшим, щоб контент початково починався під скляним AppBar
             padding: EdgeInsets.fromLTRB(20, statusBarHeight + 95, 20, 20),
             children: [
               // Блок зміни аватара
@@ -354,7 +433,10 @@ class SettingsPage extends ConsumerWidget {
                       radius: 50,
                       backgroundColor: Colors.white.withOpacity(0.06),
                       backgroundImage: settings.avatarPath != null
-                          ? FileImage(File(settings.avatarPath!))
+                          ? (settings.avatarPath!.startsWith('http')
+                                ? NetworkImage(settings.avatarPath!)
+                                      as ImageProvider
+                                : FileImage(File(settings.avatarPath!)))
                           : null,
                       child: settings.avatarPath == null
                           ? const Icon(
@@ -368,7 +450,9 @@ class SettingsPage extends ConsumerWidget {
                       bottom: 0,
                       right: 0,
                       child: GestureDetector(
-                        onTap: () => _changeAvatar(context, ref),
+                        onTap: settings.isLoading
+                            ? null
+                            : () => _changeAvatar(context, ref),
                         child: Container(
                           padding: const EdgeInsets.all(7),
                           decoration: BoxDecoration(
@@ -389,7 +473,6 @@ class SettingsPage extends ConsumerWidget {
               const SizedBox(height: 12),
 
               // Блок зміни імені
-              // Блок зміни імені (Тепер ідеально відцентрований)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -400,7 +483,7 @@ class SettingsPage extends ConsumerWidget {
                       onPressed: null,
                     ),
                   ),
-                  const SizedBox(width: 4), // Дзеркальний відступ
+                  const SizedBox(width: 4),
                   Text(
                     settings.userName,
                     style: const TextStyle(
@@ -410,20 +493,24 @@ class SettingsPage extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 4),
-
                   IconButton(
                     icon: const Icon(
                       Icons.mode_edit_outlined,
                       size: 18,
                       color: Colors.white54,
                     ),
-                    onPressed: () =>
-                        _openEditNameDialog(context, ref, settings.userName),
+                    onPressed: settings.isLoading
+                        ? null
+                        : () => _openEditNameDialog(
+                            context,
+                            ref,
+                            settings.userName,
+                          ),
                   ),
                 ],
               ),
 
-              // Динамічна кнопка збереження
+              // Динамічна кнопка збереження з індикатором завантаження
               if (settings.hasUnsavedChanges) ...[
                 const SizedBox(height: 10),
                 Center(
@@ -439,22 +526,46 @@ class SettingsPage extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                     ),
-                    onPressed: () async {
-                      await ref
-                          .read(settingsProvider.notifier)
-                          .saveProfileChanges();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Профіль успішно збережено!"),
-                          ),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.check, size: 18),
-                    label: const Text(
-                      "Зберегти зміни",
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    onPressed: settings.isLoading
+                        ? null
+                        : () async {
+                            final notifier = ref.read(
+                              settingsProvider.notifier,
+                            );
+                            final success = await notifier.saveProfileChanges();
+                            if (context.mounted) {
+                              final errorMessage = notifier.getLastError();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    success
+                                        ? "Профіль успішно збережено в хмару!"
+                                        : errorMessage ??
+                                              "Помилка збереження. Перевірте мережу.",
+                                  ),
+                                  backgroundColor: success
+                                      ? Colors.green
+                                      : Colors.redAccent,
+                                  duration: const Duration(seconds: 4),
+                                ),
+                              );
+                            }
+                          },
+                    icon: settings.isLoading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Icon(Icons.check, size: 18),
+                    label: Text(
+                      settings.isLoading
+                          ? "Синхронізація..."
+                          : "Зберегти зміни",
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -580,35 +691,29 @@ class SettingsPage extends ConsumerWidget {
             ],
           ),
 
-          // 2. ФІКСОВАНИЙ ВЕРХНІЙ LIQUID GLASS APP BAR (ЗАВЖДИ НАВЕРХУ)
+          // 2. ФІКСОВАНИЙ ВЕРХНІЙ LIQUID GLASS APP BAR
           Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: Column(
               children: [
-                // Повністю прозорий заповнювач висоти статус-бару, щоб BackdropFilter затікав на самісінький верх
                 Container(height: statusBarHeight, color: Colors.transparent),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
                   child: SizedBox(
-                    height:
-                        70, // Фіксована висота капсули як і у нижнього навбару
+                    height: 70,
                     child: Stack(
                       children: [
-                        // --- ЕФЕКТ LIQUID GLASS ---
                         ClipRRect(
                           borderRadius: BorderRadius.circular(35),
                           child: BackdropFilter(
-                            filter: ImageFilter.blur(
-                              sigmaX: 6,
-                              sigmaY: 9,
-                            ), // Розрахунок блуру копіює твій MainNavBar
+                            filter: ImageFilter.blur(sigmaX: 6, sigmaY: 9),
                             child: Container(
                               decoration: BoxDecoration(
                                 color: const Color(
                                   0xFFFF007F,
-                                ).withOpacity(0.05), // Твій neonPink відтінок
+                                ).withOpacity(0.05),
                                 borderRadius: BorderRadius.circular(35),
                                 border: Border.all(
                                   color: Colors.white.withOpacity(0.12),
@@ -625,26 +730,20 @@ class SettingsPage extends ConsumerWidget {
                             ),
                           ),
                         ),
-
-                        // --- ОНОВЛЕНИЙ КОНТЕНТ (Ідеальне центрування за допомогою Stack) ---
                         SizedBox(
                           width: double.infinity,
                           height: 70,
                           child: Stack(
-                            alignment: Alignment
-                                .center, // Центруємо текст по всій ширині барбару
+                            alignment: Alignment.center,
                             children: [
-                              // Стрілка назад (вирвана з потоку і притиснута ліворуч)
                               Positioned(
                                 left: 10,
                                 child: Material(
                                   color: Colors.transparent,
                                   child: InkWell(
                                     borderRadius: BorderRadius.circular(30),
-                                    splashColor: Colors
-                                        .transparent, // Вимикає ефект розмитих пікселів
-                                    highlightColor: Colors
-                                        .transparent, // Вимикає ефект затискання
+                                    splashColor: Colors.transparent,
+                                    highlightColor: Colors.transparent,
                                     onTap: () => Navigator.maybePop(context),
                                     child: const Padding(
                                       padding: EdgeInsets.all(12.0),
@@ -657,8 +756,6 @@ class SettingsPage extends ConsumerWidget {
                                   ),
                                 ),
                               ),
-
-                              // Напис "Налаштування" (абсолютний центр)
                               Text(
                                 "Налаштування",
                                 style: TextStyle(

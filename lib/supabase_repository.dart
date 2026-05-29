@@ -56,6 +56,7 @@ class SupabaseRepository {
         'bioSync': profileResponse['bio_sync'] ?? true,
         'darkImmersion': profileResponse['dark_immersion'] ?? true,
         'zenNotifications': profileResponse['zen_notifications'] ?? false,
+        'avatar_url': profileResponse['avatar_url'],
         'focusData': focusData,
       };
     } catch (e, stackTrace) {
@@ -106,6 +107,7 @@ class SupabaseRepository {
       'bioSync': true,
       'darkImmersion': true,
       'zenNotifications': false,
+      'avatar_url': null,
       'focusData': {
         'MON': 40.0,
         'TUE': 35.0,

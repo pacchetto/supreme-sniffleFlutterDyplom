@@ -113,7 +113,7 @@ class CyberRepository {
     try {
       await _supabaseRepo.updateFocusInCloud(day, value);
     } catch (e) {
-      debugPrint("Не вдалося дузвукувати графік в хмару: $e");
+      debugPrint("Не вдалося дублювати графік в хмару: $e");
     }
   }
 }
@@ -204,9 +204,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final userDataAsync = ref.watch(userDataProvider);
     final isDarkImmersion = ref.watch(darkImmersionProvider);
     final isBioSync = ref.watch(bioSyncProvider);
-    final isDevMode = ref.watch(
-      devModeProvider,
-    ); // Слухаємо режим розробника тут
+    final isDevMode = ref.watch(devModeProvider);
 
     final Color backgroundColor = isDarkImmersion
         ? const Color(0xFF000000)
@@ -231,6 +229,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             final String username = cloudData['username'] ?? "Unknown User";
             final String title = cloudData['title'] ?? "CYBER MONK";
             final int level = cloudData['level'] ?? 1;
+            final String? avatarUrl = cloudData['avatar_url'];
+
+            debugPrint("🔷 ProfilePage DEBUG: avatar_url = $avatarUrl");
 
             if (cloudData['focusData'] != null) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -245,12 +246,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             }
 
             return _buildMainContent(
+              cloudData,
               username,
               title,
               level,
               isBioSync,
               isDarkImmersion,
-              isDevMode, // Передаємо у контент сторінки
+              isDevMode,
             );
           },
         ),
@@ -260,6 +262,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   Widget _buildMainContent(
+    Map<String, dynamic> user,
     String username,
     String title,
     int level,
@@ -268,6 +271,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     bool isDevMode,
   ) {
     final Color accentColor = isBioSync ? neonPink : Colors.white54;
+    final String? realAvatarUrl = user['avatar_url'];
+
+    debugPrint("🔸 _buildMainContent: realAvatarUrl = $realAvatarUrl");
+    if (realAvatarUrl != null && realAvatarUrl.isNotEmpty) {
+      debugPrint("✅ NetworkImage будет показан з URL: $realAvatarUrl");
+    } else {
+      debugPrint("⚠️ avatar_url є null або пустий");
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -291,11 +302,40 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         ),
                     ],
                   ),
-                  child: const CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Color(0xFF151515),
-                    backgroundImage: NetworkImage(
-                      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150',
+                  child: Container(
+                    width: 108,
+                    height: 108,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.06),
+                    ),
+                    child: ClipOval(
+                      child: realAvatarUrl != null && realAvatarUrl.isNotEmpty
+                          ? Image.network(
+                              realAvatarUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                debugPrint(
+                                    "❌ Помилка завантаження аватару: $error");
+                                return Icon(Icons.person,
+                                    size: 50, color: accentColor);
+                              },
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Center(
+                                  child: CircularProgressIndicator(
+                                    value: loadingProgress.expectedTotalBytes !=
+                                            null
+                                        ? loadingProgress.cumulativeBytesLoaded /
+                                            loadingProgress.expectedTotalBytes!
+                                        : null,
+                                    color: accentColor,
+                                  ),
+                                );
+                              },
+                            )
+                          : Icon(Icons.person, size: 50, color: accentColor),
                     ),
                   ),
                 ),
