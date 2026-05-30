@@ -1,5 +1,5 @@
 // ignore_for_file: deprecated_member_use
-
+//profile_page.dart
 import 'package:aetheria_graph_app/providers/user_data_provider.dart';
 import 'package:aetheria_graph_app/settings_page.dart';
 import 'package:flutter/material.dart';
@@ -231,6 +231,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             final int userXp = cloudData['xp'] ?? 0;
             final levelInfo = getUserLevelInfo(xp: userXp);
             final String? avatarUrl = cloudData['avatar_url'];
+            final int dayStreak = cloudData['day_streak'] ?? 0;
+            final int meditationMinutes = cloudData['meditation_minutes'] ?? 0;
+            final int clarityLevel = cloudData['clarity_level'] ?? 0;
 
             debugPrint("🔷 ProfilePage DEBUG: avatar_url = $avatarUrl");
 
@@ -253,6 +256,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               isBioSync,
               isDarkImmersion,
               isDevMode,
+              dayStreak,
+              meditationMinutes,
+              clarityLevel,
             );
           },
         ),
@@ -268,12 +274,23 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     bool isBioSync,
     bool isDarkImmersion,
     bool isDevMode,
+    int dayStreak,
+    int meditationMinutes,
+    int clarityLevel,
   ) {
     final Color accentColor = isBioSync ? neonPink : Colors.white54;
     final Color rankColor = levelInfo.rank.color;
     final String? realAvatarUrl = user['avatar_url'];
 
     debugPrint("🔸 _buildMainContent: realAvatarUrl = $realAvatarUrl");
+
+    String formatMeditationTime(int minutes) {
+      if (minutes == 0) return "0m";
+      if (minutes < 60) return "${minutes}m";
+      int h = minutes ~/ 60;
+      int m = minutes % 60;
+      return m > 0 ? "${h}h ${m}m" : "${h}h";
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -427,9 +444,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildStatCard("42h", "MEDITATED"),
-                _buildStatCard("12", "DAY STREAK", isMain: true),
-                _buildStatCard("85%", "CLARITY"),
+                // Використовуємо наші динамічні змінні
+                _buildStatCard(
+                  formatMeditationTime(meditationMinutes),
+                  "MEDITATED",
+                ),
+                _buildStatCard("$dayStreak", "DAY STREAK", isMain: true),
+                _buildStatCard("$clarityLevel%", "CLARITY"),
               ],
             ),
           ),

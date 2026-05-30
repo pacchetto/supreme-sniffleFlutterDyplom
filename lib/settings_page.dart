@@ -90,7 +90,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       isSoundsEnabled: prefs.getBool('sounds_enabled') ?? true,
       isDarkImmersion: prefs.getBool('dark_immersion') ?? false,
       isBioSync: prefs.getBool('bio_sync') ?? false,
-      isDevMode: prefs.getBool('dev_mode') ?? false,
+      isDevMode: false,
       hasUnsavedChanges: false,
     );
   }
@@ -203,10 +203,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     await prefs.setBool('bio_sync', value);
   }
 
-  Future<void> toggleDevMode(bool value) async {
+  void toggleDevMode(bool value) {
     state = state.copyWith(isDevMode: value);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('dev_mode', value);
   }
 }
 
@@ -599,13 +597,15 @@ class SettingsPage extends ConsumerWidget {
                 onChanged: (val) =>
                     ref.read(settingsProvider.notifier).toggleBioSync(val),
               ),
-              _buildCustomToggle(
-                title: "Режим розробника",
-                subtitle: "Активація логів та діагностики",
-                value: settings.isDevMode,
-                onChanged: (val) =>
-                    ref.read(settingsProvider.notifier).toggleDevMode(val),
-              ),
+              if (settings.isDevMode)
+                _buildCustomToggle(
+                  title: "Режим розробника",
+                  subtitle: "Активація логів та діагностики (Гра)",
+                  value: settings.isDevMode,
+                  onChanged: (val) {
+                    ref.read(settingsProvider.notifier).toggleDevMode(val);
+                  },
+                ),
 
               const Divider(color: Colors.white10, height: 45),
 

@@ -11,9 +11,10 @@ class SupabaseRepository {
     return '00000000-0000-0000-0000-000000000000';
   }
 
-  // 1. ЗАВАНТАЖЕННЯ ДАНИХ (ПРОФІЛЬ + ГРАФІК)
+  // 1. ЗАВАНТАЖЕННЯ ДАНИХ (ПРОФІЛЬ + ГРАФІК + ПРОГРЕС ЗА СЬОГОДНІ)
   Future<Map<String, dynamic>> loadUserData() async {
     final userId = _currentUserId;
+    final today = DateTime.now().toIso8601String().split('T').first;
 
     try {
       // Паралельний запуск запитів для мінімізації затримки мережі
@@ -24,12 +25,20 @@ class SupabaseRepository {
             .select()
             .eq('user_id', userId)
             .maybeSingle(),
+        // НОВЕ: Запит до денного прогресу
+        _supabase
+            .from('daily_progress')
+            .select()
+            .eq('user_id', userId)
+            .eq('date', today)
+            .maybeSingle(),
       ]);
 
       final profileResponse = responses[0];
       final statsResponse = responses[1];
+      final dailyResponse = responses[2];
 
-      // Якщо якихось даних немає (перший запуск або збій створення) — ініціалізуємо
+      // Якщо якихось базових даних немає (перший запуск) — ініціалізуємо
       if (profileResponse == null || statsResponse == null) {
         return await _createMissingUserRecords(
           userId,
@@ -38,7 +47,7 @@ class SupabaseRepository {
         );
       }
 
-      // Безпечний мапінг з підтримкою альтернативного написання середи ('wen')
+      // Безпечний мапінг графіка
       Map<String, double> focusData = {
         'MON': _parseDbDouble(statsResponse['mon']),
         'TUE': _parseDbDouble(statsResponse['tue']),
@@ -59,6 +68,10 @@ class SupabaseRepository {
         'zenNotifications': profileResponse['zen_notifications'] ?? false,
         'avatar_url': profileResponse['avatar_url'],
         'focusData': focusData,
+        // НОВЕ: Динамічні дані для статистики
+        'day_streak': profileResponse['day_streak'] ?? 0,
+        'meditation_minutes': dailyResponse?['meditation_minutes'] ?? 0,
+        'clarity_level': dailyResponse?['clarity_level'] ?? 0,
       };
     } catch (e, stackTrace) {
       if (kDebugMode) {
@@ -85,6 +98,7 @@ class SupabaseRepository {
         'bio_sync': true,
         'dark_immersion': true,
         'zen_notifications': false,
+        'day_streak': 0, // Додано ініціалізацію стріка
       });
     }
 
@@ -93,8 +107,7 @@ class SupabaseRepository {
         'user_id': userId,
         'mon': 40.0,
         'tue': 35.0,
-        'wed':
-            60.0, // Сюди запишеться 'wed', або змініть на 'wen' відповідно до назви стовпця у вашій БД
+        'wed': 60.0,
         'thu': 72.0,
         'fri': 78.0,
         'sat': 50.0,
@@ -111,6 +124,9 @@ class SupabaseRepository {
       'darkImmersion': true,
       'zenNotifications': false,
       'avatar_url': null,
+      'day_streak': 0,
+      'meditation_minutes': 0,
+      'clarity_level': 0,
       'focusData': {
         'MON': 40.0,
         'TUE': 35.0,
@@ -142,17 +158,12 @@ class SupabaseRepository {
 
   // 3. ОНОВЛЕННЯ ХП В ХМАРІ
   Future<void> updateXpInCloud(int xp) async {
-    await _supabase
-        .from('profile')
-        .update({'xp': xp})
-        .eq('id', _currentUserId);
+    await _supabase.from('profile').update({'xp': xp}).eq('id', _currentUserId);
   }
 
   /// Метод для додавання XP (використовується при завершенні техніки)
-  /// Повертає нове значення XP для оновлення UI
   Future<int> addXpAndGetNew(int xpToAdd) async {
     try {
-      // 1. Отримуємо поточний XP
       final profileResponse = await _supabase
           .from('profile')
           .select('xp')
@@ -162,16 +173,13 @@ class SupabaseRepository {
       final currentXp = (profileResponse?['xp'] as int?) ?? 0;
       final newXp = currentXp + xpToAdd;
 
-      // 2. Зберігаємо нове значення XP
       await _supabase
           .from('profile')
           .update({'xp': newXp})
           .eq('id', _currentUserId);
 
       if (kDebugMode) {
-        debugPrint(
-          "✅ XP оновлено: $currentXp → $newXp (+$xpToAdd)",
-        );
+        debugPrint("✅ XP оновлено: $currentXp → $newXp (+$xpToAdd)");
       }
 
       return newXp;
@@ -183,12 +191,10 @@ class SupabaseRepository {
     }
   }
 
-
-  // 4. ОНОВЛЕННЯ ДНЯ ТИЖНЯ В ХМАРІ (Уніфікований метод)
+  // 4. ОНОВЛЕННЯ ДНЯ ТИЖНЯ В ХМАРІ
   Future<void> updateFocusInCloud(String day, double value) async {
     String dbColumn = day.toLowerCase();
 
-    // Обробка костиля/специфіки назви стовпця середи в базі даних
     if (dbColumn == 'wed') {
       // Якщо в БД стовпець називається 'wen', розкоментуйте наступний рядок:
       // dbColumn = 'wen';
@@ -198,6 +204,56 @@ class SupabaseRepository {
         .from('focus_stats')
         .update({dbColumn: value})
         .eq('user_id', _currentUserId);
+  }
+
+  // 5. НОВЕ: ОНОВЛЕННЯ ДЕННОГО ПРОГРЕСУ (Медитація / Фокус)
+  Future<void> logDailyProgress({
+    required int addMinutes,
+    int? clarityLevel,
+  }) async {
+    final userId = _currentUserId;
+    final today = DateTime.now().toIso8601String().split('T').first;
+
+    try {
+      // Перевіряємо чи є вже запис на сьогодні
+      final existing = await _supabase
+          .from('daily_progress')
+          .select('meditation_minutes')
+          .eq('user_id', userId)
+          .eq('date', today)
+          .maybeSingle();
+
+      if (existing == null) {
+        // Якщо ще немає — створюємо новий запис
+        await _supabase.from('daily_progress').insert({
+          'user_id': userId,
+          'date': today,
+          'meditation_minutes': addMinutes,
+          'clarity_level':
+              clarityLevel ?? 80, // Дефолтна ясність, якщо не передана
+        });
+      } else {
+        // Якщо є — плюсуємо хвилини
+        final currentMins = existing['meditation_minutes'] as int? ?? 0;
+        final updateData = <String, dynamic>{
+          'meditation_minutes': currentMins + addMinutes,
+        };
+
+        if (clarityLevel != null) {
+          updateData['clarity_level'] = clarityLevel;
+        }
+
+        await _supabase
+            .from('daily_progress')
+            .update(updateData)
+            .eq('user_id', userId)
+            .eq('date', today);
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint("⛔ Помилка при логуванні денного прогресу: $e");
+      }
+    }
   }
 
   /// Парсер для безпечного отримання double значень із динамічних відповідей БД
