@@ -602,16 +602,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           const SizedBox(height: 25),
           if (_isGameVisible)
             CyberRunnerGame(
-            neonPink: neonPink,
-            onGameFinished: (calculatedFocus) {
-              List<String> days = _focusData.keys.toList();
-              if (days.isNotEmpty &&
-                  _currentDayIndex >= 0 &&
-                  _currentDayIndex < days.length) {
-                _updateFocusData(days[_currentDayIndex], calculatedFocus);
-              }
-            },
-          ),
+              neonPink: neonPink,
+              onGameFinished: (calculatedFocus) {
+                List<String> days = _focusData.keys.toList();
+                if (days.isNotEmpty &&
+                    _currentDayIndex >= 0 &&
+                    _currentDayIndex < days.length) {
+                  _updateFocusData(days[_currentDayIndex], calculatedFocus);
+                }
+              },
+            ),
           const SizedBox(height: 35),
 
           // НАЛАШТУВАННЯ СИСТЕМИ
