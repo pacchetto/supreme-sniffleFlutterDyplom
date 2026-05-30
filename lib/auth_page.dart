@@ -148,6 +148,7 @@ class _AuthPageState extends State<AuthPage> {
       // Гарантовано перенаправляємо на головну сторінку для гостей
       _navigateToHome();
     } catch (e) {
+      // ignore: use_build_context_synchronously
       final Color pinkColor = Theme.of(context).colorScheme.primary;
       _showCyberDialog(
         title: "ПОМИЛКА ГУЕСТА",

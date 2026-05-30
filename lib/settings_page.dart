@@ -11,7 +11,6 @@ import 'dart:ui';
 import 'auth_repository.dart';
 import 'auth_page.dart';
 import 'package:aetheria_graph_app/providers/user_data_provider.dart';
-
 // ==========================================
 // 1. ШАР ДАНИХ ТА БІЗНЕС-ЛОГІКИ (RIVERPOD)
 // ==========================================
@@ -25,7 +24,7 @@ class SettingsState {
   final bool isBioSync;
   final bool isDevMode;
   final bool hasUnsavedChanges;
-  final bool isLoading; // Додали стан завантаження для UI
+  final bool isLoading;
 
   SettingsState({
     required this.userName,
@@ -66,7 +65,7 @@ class SettingsState {
 }
 
 class SettingsNotifier extends StateNotifier<SettingsState> {
-  final Ref ref; // Додали ref, щоб керувати іншими провайдерами
+  final Ref ref;
 
   SettingsNotifier(this.ref)
     : super(
@@ -108,10 +107,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   }
 
   String? getLastError() => _lastErrorMessage;
-
   String? _lastErrorMessage;
 
-  // --- ОНОВЛЕНИЙ МЕТОД: ВІДПРАВКА ДАНИХ У SUPABASE ---
   Future<bool> saveProfileChanges() async {
     state = state.copyWith(isLoading: true);
     final prefs = await SharedPreferences.getInstance();
@@ -127,15 +124,12 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     String? remoteAvatarUrl;
 
     try {
-      // 1. Якщо аватар змінився (і це локальний шлях до файлу, а не http посилання)
       if (state.avatarPath != null && !state.avatarPath!.startsWith('http')) {
         final file = File(state.avatarPath!);
-        // Назва файлу в сховищі: id_користувача/avatar_таймстамп.png
         final fileName =
             '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.png';
 
         try {
-          // Завантажуємо у бакет 'avatars' (переконайся, що створив його в Supabase console)
           await supabase.storage
               .from('avatars')
               .upload(
@@ -144,7 +138,6 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
                 fileOptions: const FileOptions(upsert: true),
               );
 
-          // Отримуємо пряме публічне посилання на завантажений файл
           remoteAvatarUrl = supabase.storage
               .from('avatars')
               .getPublicUrl(fileName);
@@ -152,14 +145,12 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           _lastErrorMessage =
               "Помилка завантаження аватару: ${storageError.toString()}";
           debugPrint("Storage Error: $storageError");
-          throw storageError;
+          rethrow;
         }
       }
 
-      // 2. Оновлюємо текстові дані користувача в таблиці 'profiles'
       final Map<String, dynamic> updates = {'username': state.userName};
 
-      // Якщо фото завантажилось — додаємо його URL в запит оновлення БД
       if (remoteAvatarUrl != null) {
         updates['avatar_url'] = remoteAvatarUrl;
       }
@@ -169,18 +160,15 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       } catch (dbError) {
         _lastErrorMessage = "Помилка оновлення профілю: ${dbError.toString()}";
         debugPrint("Database Error: $dbError");
-        throw dbError;
+        rethrow;
       }
 
-      // 3. Дублюємо збереження локально (про всяк випадок)
       await prefs.setString('user_name', state.userName);
       if (state.avatarPath != null) {
         await prefs.setString('avatar_path', state.avatarPath!);
       }
 
       state = state.copyWith(hasUnsavedChanges: false, isLoading: false);
-
-      // 4. КРИТИЧНО: Скидаємо кеш профілю, щоб ProfilePage моментально завантажив нові дані
       ref.invalidate(userDataProvider);
 
       return true;
@@ -223,7 +211,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
 }
 
 final settingsProvider = StateNotifierProvider<SettingsNotifier, SettingsState>(
-  (ref) => SettingsNotifier(ref), // Передаємо ref у конструктор нотіфаєра
+  (ref) => SettingsNotifier(ref),
 );
 
 // ==========================================
@@ -232,6 +220,9 @@ final settingsProvider = StateNotifierProvider<SettingsNotifier, SettingsState>(
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
+
+  // Лічильник кліків для пасхалки
+  static int _versionClicks = 0;
 
   Future<void> _changeAvatar(BuildContext context, WidgetRef ref) async {
     try {
@@ -687,7 +678,71 @@ class SettingsPage extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+
+              const SizedBox(height: 10),
+
+              // ==========================================
+              // ПАСХАЛКА: Версія додатка для запуску ранера
+              // ==========================================
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 14.0),
+                  child: GestureDetector(
+                    onTap: () async {
+                      HapticFeedback.lightImpact();
+                      _versionClicks++;
+                      const int requiredClicks = 5;
+
+                      if (_versionClicks < requiredClicks) {
+                        ScaffoldMessenger.of(context).clearSnackBars();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              "[SYSTEM]: До калібрування ядра залишилось: ${requiredClicks - _versionClicks}",
+                              style: const TextStyle(
+                                fontFamily: 'monospace',
+                                color: Colors.greenAccent,
+                              ),
+                            ),
+                            backgroundColor: const Color(0xFF151515),
+                            duration: const Duration(milliseconds: 600),
+                          ),
+                        );
+                        return;
+                      }
+
+                      // Досягли порогу — вмикаємо режим розробника/пасхалку
+                      _versionClicks = 0;
+                      ScaffoldMessenger.of(context).clearSnackBars();
+                      ref.read(settingsProvider.notifier).toggleDevMode(true);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("[SYSTEM]: Режим розробника увімкнено"),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      color: Colors.transparent, // Розширюємо область тапу
+                      child: Text(
+                        "ВЕРСІЯ ДОДАТКА: 1.0.4+2026",
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.2),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
             ],
           ),
 
