@@ -154,6 +154,9 @@ class _SessionPageState extends ConsumerState<SessionPage>
     _sessionTimer?.cancel();
     if (!mounted) return;
 
+    final int secondsPassed = _elapsedSecondsNotifier.value;
+    final int meditatedMinutes = (_elapsedSecondsNotifier.value / 60).ceil();
+
     setState(() {
       isPlaying = false;
       _breathingController.stop();
@@ -162,47 +165,43 @@ class _SessionPageState extends ConsumerState<SessionPage>
     });
 
     try {
-      // Визначаємо поточний день
       String currentDay = DateFormat('E').format(DateTime.now()).toUpperCase();
-
       final repo = SupabaseRepository();
 
-      // 1. Оновлюємо Focus для поточного дня (залишаємо як було)
       await repo.updateFocusInCloud(currentDay, 50.0);
 
-      // 2. Додаємо +10 XP за завершену техніку
       final newXp = await repo.addXpAndGetNew(10);
 
-      // 3. Інвалідуємо провайдер, щоб профіль оновився
+      if (meditatedMinutes > 0) {
+        await repo.logDailyProgress(addMinutes: meditatedMinutes);
+      }
+
       ref.invalidate(userDataProvider);
 
       if (kDebugMode) {
         debugPrint("☁️ Прогрес за $currentDay успішно збережено!");
-        debugPrint("✨ +10 XP отримано! Всього XP: $newXp");
+        debugPrint("⏳ Додано хвилин медитації: $meditatedMinutes");
       }
 
-      // 4. Показуємо Snackbar з вітанням
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Row(
+            content: const Row(
               children: [
-                const Icon(Icons.star_rounded, color: Colors.amber, size: 20),
-                const SizedBox(width: 12),
-                const Expanded(
+                Icon(Icons.star_rounded, color: Colors.amber, size: 20),
+                SizedBox(width: 12),
+                Expanded(
                   child: Text(
-                    "+10 XP EARNED! 🎉",
+                    "SESSION COMPLETE! PROGRESS SAVED 🎉",
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
                     ),
                   ),
                 ),
               ],
             ),
             backgroundColor: Colors.black87,
-            duration: const Duration(seconds: 3),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),

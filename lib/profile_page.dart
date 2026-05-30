@@ -630,13 +630,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           if (_isGameVisible)
             CyberRunnerGame(
               neonPink: neonPink,
-              onGameFinished: (calculatedFocus) {
+              onGameFinished: (calculatedFocus) async {
                 List<String> days = _focusData.keys.toList();
                 if (days.isNotEmpty &&
                     _currentDayIndex >= 0 &&
                     _currentDayIndex < days.length) {
                   _updateFocusData(days[_currentDayIndex], calculatedFocus);
                 }
+
+                await SupabaseRepository().logDailyProgress(
+                  addMinutes: 0,
+                  clarityLevel: calculatedFocus.toInt(),
+                );
+                ref.invalidate(userDataProvider);
               },
             ),
           const SizedBox(height: 35),
@@ -759,7 +765,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 child: Text(
                   "v1.0.0-build.42",
                   style: TextStyle(
-                    color: Colors.white24, // Сірий непомітний колір
+                    color: Colors.white24,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     letterSpacing: 1.2,

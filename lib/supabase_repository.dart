@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class SupabaseRepository {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  /// Повертає ID поточного користувача. Якщо не авторизований — віддає тестовий UUID.
+  /// Повертає ID поточної сесії користувача. Якщо не авторизований — тестовий UUID.
   String get _currentUserId {
     final sessionUserId = _supabase.auth.currentUser?.id;
     if (sessionUserId != null) return sessionUserId;
@@ -25,7 +25,6 @@ class SupabaseRepository {
             .select()
             .eq('user_id', userId)
             .maybeSingle(),
-        // НОВЕ: Запит до денного прогресу
         _supabase
             .from('daily_progress')
             .select()
@@ -38,7 +37,7 @@ class SupabaseRepository {
       final statsResponse = responses[1];
       final dailyResponse = responses[2];
 
-      // Якщо якихось базових даних немає (перший запуск) — ініціалізуємо
+      // Якщо базових даних немає (перший запуск) — ініціалізуємо
       if (profileResponse == null || statsResponse == null) {
         return await _createMissingUserRecords(
           userId,
@@ -68,7 +67,6 @@ class SupabaseRepository {
         'zenNotifications': profileResponse['zen_notifications'] ?? false,
         'avatar_url': profileResponse['avatar_url'],
         'focusData': focusData,
-        // НОВЕ: Динамічні дані для статистики
         'day_streak': profileResponse['day_streak'] ?? 0,
         'meditation_minutes': dailyResponse?['meditation_minutes'] ?? 0,
         'clarity_level': dailyResponse?['clarity_level'] ?? 0,
@@ -98,7 +96,7 @@ class SupabaseRepository {
         'bio_sync': true,
         'dark_immersion': true,
         'zen_notifications': false,
-        'day_streak': 0, // Додано ініціалізацію стріка
+        'day_streak': 0,
       });
     }
 
@@ -196,8 +194,7 @@ class SupabaseRepository {
     String dbColumn = day.toLowerCase();
 
     if (dbColumn == 'wed') {
-      // Якщо в БД стовпець називається 'wen', розкоментуйте наступний рядок:
-      // dbColumn = 'wen';
+      // dbColumn = 'wen'; // розкоментуй, якщо в БД стовпець називається 'wen'
     }
 
     await _supabase
@@ -206,7 +203,7 @@ class SupabaseRepository {
         .eq('user_id', _currentUserId);
   }
 
-  // 5. НОВЕ: ОНОВЛЕННЯ ДЕННОГО ПРОГРЕСУ (Медитація / Фокус)
+  // 5. ОНОВЛЕННЯ ДЕННОГО ПРОГРЕСУ (Медитація / Фокус)
   Future<void> logDailyProgress({
     required int addMinutes,
     int? clarityLevel,
@@ -224,16 +221,35 @@ class SupabaseRepository {
           .maybeSingle();
 
       if (existing == null) {
-        // Якщо ще немає — створюємо новий запис
+        // --- ПЕРША ТЕХНІКА ЗА СЬОГОДНІ ---
         await _supabase.from('daily_progress').insert({
           'user_id': userId,
           'date': today,
           'meditation_minutes': addMinutes,
-          'clarity_level':
-              clarityLevel ?? 80, // Дефолтна ясність, якщо не передана
+          'clarity_level': clarityLevel ?? 80,
         });
+
+        // Оновлюємо day_streak у таблиці profile
+        final profileResponse = await _supabase
+            .from('profile')
+            .select('day_streak')
+            .eq('id', userId)
+            .maybeSingle();
+
+        final currentStreak = (profileResponse?['day_streak'] as int?) ?? 0;
+
+        await _supabase
+            .from('profile')
+            .update({'day_streak': currentStreak + 1})
+            .eq('id', userId);
+
+        if (kDebugMode) {
+          debugPrint(
+            "🔥 Новий день! Серія днів збільшена до: ${currentStreak + 1}",
+          );
+        }
       } else {
-        // Якщо є — плюсуємо хвилини
+        // --- СЕСІЯ ВЖЕ НЕ ПЕРША ЗА СЬОГОДНІ ---
         final currentMins = existing['meditation_minutes'] as int? ?? 0;
         final updateData = <String, dynamic>{
           'meditation_minutes': currentMins + addMinutes,

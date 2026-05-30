@@ -737,20 +737,18 @@ class SettingsPage extends ConsumerWidget {
                       );
                     },
 
-                    child: Container(
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(
-                          vertical: 10,
-                          horizontal: 10,
-                        ),
-                        child: Text(
-                          "v1.0.0-build.42",
-                          style: TextStyle(
-                            color: Colors.white24, // Сірий непомітний колір
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 1.2,
-                          ),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 10,
+                      ),
+                      child: Text(
+                        "v1.0.0-build.42",
+                        style: TextStyle(
+                          color: Colors.white24, // Сірий непомітний колір
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 1.2,
                         ),
                       ),
                     ),
