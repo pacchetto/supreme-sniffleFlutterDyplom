@@ -53,6 +53,7 @@ class SupabaseRepository {
         'username': profileResponse['username'] ?? 'Alex V.',
         'title': profileResponse['title'] ?? 'CYBER MONK',
         'level': profileResponse['level'] ?? 12,
+        'xp': profileResponse['xp'] ?? 0,
         'bioSync': profileResponse['bio_sync'] ?? true,
         'darkImmersion': profileResponse['dark_immersion'] ?? true,
         'zenNotifications': profileResponse['zen_notifications'] ?? false,
@@ -80,6 +81,7 @@ class SupabaseRepository {
         'username': 'Alex V.',
         'title': 'CYBER MONK',
         'level': 12,
+        'xp': 1100,
         'bio_sync': true,
         'dark_immersion': true,
         'zen_notifications': false,
@@ -104,6 +106,7 @@ class SupabaseRepository {
       'username': 'Alex V.',
       'title': 'CYBER MONK',
       'level': 12,
+      'xp': 1100,
       'bioSync': true,
       'darkImmersion': true,
       'zenNotifications': false,
@@ -137,7 +140,51 @@ class SupabaseRepository {
         .eq('id', _currentUserId);
   }
 
-  // 3. ОНОВЛЕННЯ ДНЯ ТИЖНЯ В ХМАРІ (Уніфікований метод)
+  // 3. ОНОВЛЕННЯ ХП В ХМАРІ
+  Future<void> updateXpInCloud(int xp) async {
+    await _supabase
+        .from('profile')
+        .update({'xp': xp})
+        .eq('id', _currentUserId);
+  }
+
+  /// Метод для додавання XP (використовується при завершенні техніки)
+  /// Повертає нове значення XP для оновлення UI
+  Future<int> addXpAndGetNew(int xpToAdd) async {
+    try {
+      // 1. Отримуємо поточний XP
+      final profileResponse = await _supabase
+          .from('profile')
+          .select('xp')
+          .eq('id', _currentUserId)
+          .maybeSingle();
+
+      final currentXp = (profileResponse?['xp'] as int?) ?? 0;
+      final newXp = currentXp + xpToAdd;
+
+      // 2. Зберігаємо нове значення XP
+      await _supabase
+          .from('profile')
+          .update({'xp': newXp})
+          .eq('id', _currentUserId);
+
+      if (kDebugMode) {
+        debugPrint(
+          "✅ XP оновлено: $currentXp → $newXp (+$xpToAdd)",
+        );
+      }
+
+      return newXp;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint("⛔ Помилка при додаванні XP: $e");
+      }
+      rethrow;
+    }
+  }
+
+
+  // 4. ОНОВЛЕННЯ ДНЯ ТИЖНЯ В ХМАРІ (Уніфікований метод)
   Future<void> updateFocusInCloud(String day, double value) async {
     String dbColumn = day.toLowerCase();
 

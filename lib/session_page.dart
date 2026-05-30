@@ -4,17 +4,19 @@ import 'package:intl/intl.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:aetheria_graph_app/providers/user_data_provider.dart';
 
-class SessionPage extends StatefulWidget {
+class SessionPage extends ConsumerStatefulWidget {
   final Map<String, dynamic> techniqueData;
 
   const SessionPage({super.key, required this.techniqueData});
 
   @override
-  State<SessionPage> createState() => _SessionPageState();
+  ConsumerState<SessionPage> createState() => _SessionPageState();
 }
 
-class _SessionPageState extends State<SessionPage>
+class _SessionPageState extends ConsumerState<SessionPage>
     with TickerProviderStateMixin {
   late AnimationController _breathingController;
   late AnimationController _rotationController;
@@ -159,24 +161,59 @@ class _SessionPageState extends State<SessionPage>
       _phaseNotifier.value = "FINISHED";
     });
 
-    // Автоматичний запис прогресу в Supabase після успішного завершення
     try {
-      // Визначаємо поточний день (наприклад, 'MON', 'TUE', 'WED'...)
+      // Визначаємо поточний день
       String currentDay = DateFormat('E').format(DateTime.now()).toUpperCase();
 
-      // Створюємо екземпляр репозиторію (або використовуємо DI / Provider, якщо є)
       final repo = SupabaseRepository();
 
-      // Додаємо, наприклад, 5.0 балів до поточного дня за успішну сесію
-      // (Або вираховуй динамічно на основі тривалості сесії)
+      // 1. Оновлюємо Focus для поточного дня (залишаємо як було)
       await repo.updateFocusInCloud(currentDay, 50.0);
 
+      // 2. Додаємо +10 XP за завершену техніку
+      final newXp = await repo.addXpAndGetNew(10);
+
+      // 3. Інвалідуємо провайдер, щоб профіль оновився
+      ref.invalidate(userDataProvider);
+
       if (kDebugMode) {
-        debugPrint("☁️ Прогрес за $currentDay успішно збережено в Supabase!");
+        debugPrint("☁️ Прогрес за $currentDay успішно збережено!");
+        debugPrint("✨ +10 XP отримано! Всього XP: $newXp");
+      }
+
+      // 4. Показуємо Snackbar з вітанням
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.star_rounded, color: Colors.amber, size: 20),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    "+10 XP EARNED! 🎉",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.black87,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint("⛔ Помилка автозбереження сесії: $e");
+        debugPrint("⛔ Помилка при завершенні сесії: $e");
       }
     }
   }

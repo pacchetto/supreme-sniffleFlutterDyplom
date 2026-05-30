@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'supabase_repository.dart'; // Твій репозиторій Supabase
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:aetheria_graph_app/utils/level_system.dart';
 
 // ---------------------------------------------------------------------
 // 1. ГЛОБАЛЬНІ РІВЕРПОД-ПРОВАЙДЕРИ ДЛЯ ТЕМИ ТА СИНХРОНІЗАЦІЇ
@@ -227,8 +228,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
           data: (cloudData) {
             final String username = cloudData['username'] ?? "Unknown User";
-            final String title = cloudData['title'] ?? "CYBER MONK";
-            final int level = cloudData['level'] ?? 1;
+            final int userXp = cloudData['xp'] ?? 0;
+            final levelInfo = getUserLevelInfo(xp: userXp);
             final String? avatarUrl = cloudData['avatar_url'];
 
             debugPrint("🔷 ProfilePage DEBUG: avatar_url = $avatarUrl");
@@ -248,8 +249,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             return _buildMainContent(
               cloudData,
               username,
-              title,
-              level,
+              levelInfo,
               isBioSync,
               isDarkImmersion,
               isDevMode,
@@ -264,13 +264,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   Widget _buildMainContent(
     Map<String, dynamic> user,
     String username,
-    String title,
-    int level,
+    UserLevelData levelInfo,
     bool isBioSync,
     bool isDarkImmersion,
     bool isDevMode,
   ) {
     final Color accentColor = isBioSync ? neonPink : Colors.white54;
+    final Color rankColor = levelInfo.rank.color;
     final String? realAvatarUrl = user['avatar_url'];
 
     debugPrint("🔸 _buildMainContent: realAvatarUrl = $realAvatarUrl");
@@ -316,24 +316,32 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {
                                 debugPrint(
-                                    "❌ Помилка завантаження аватару: $error");
-                                return Icon(Icons.person,
-                                    size: 50, color: accentColor);
+                                  "❌ Помилка завантаження аватару: $error",
+                                );
+                                return Icon(
+                                  Icons.person,
+                                  size: 50,
+                                  color: accentColor,
+                                );
                               },
                               loadingBuilder:
                                   (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return Center(
-                                  child: CircularProgressIndicator(
-                                    value: loadingProgress.expectedTotalBytes !=
-                                            null
-                                        ? loadingProgress.cumulativeBytesLoaded /
-                                            loadingProgress.expectedTotalBytes!
-                                        : null,
-                                    color: accentColor,
-                                  ),
-                                );
-                              },
+                                    if (loadingProgress == null) return child;
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        value:
+                                            loadingProgress
+                                                    .expectedTotalBytes !=
+                                                null
+                                            ? loadingProgress
+                                                      .cumulativeBytesLoaded /
+                                                  loadingProgress
+                                                      .expectedTotalBytes!
+                                            : null,
+                                        color: accentColor,
+                                      ),
+                                    );
+                                  },
                             )
                           : Icon(Icons.person, size: 50, color: accentColor),
                     ),
@@ -349,12 +357,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     decoration: BoxDecoration(
                       color: const Color(0xFF050505),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: accentColor.withOpacity(0.5)),
+                      border: Border.all(color: rankColor.withOpacity(0.5)),
                     ),
                     child: Text(
-                      "LVL $level",
+                      "LVL ${levelInfo.level} - ${levelInfo.rank.titleUa.toUpperCase()}",
                       style: TextStyle(
-                        color: accentColor,
+                        color: rankColor,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
@@ -377,12 +385,43 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
           const SizedBox(height: 4),
           Text(
-            title,
+            levelInfo.rank.titleUa.toUpperCase(),
             style: TextStyle(
-              color: accentColor,
+              color: rankColor,
               fontSize: 12,
               fontWeight: FontWeight.w600,
               letterSpacing: 2,
+              shadows: [
+                BoxShadow(color: rankColor.withOpacity(0.4), blurRadius: 10),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // --- ПРОГРЕС БАР ДО НАСТУПНОГО РІВНЯ ---
+          SizedBox(
+            width: 160,
+            child: Column(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: LinearProgressIndicator(
+                    value: levelInfo.progressPercent / 100.0,
+                    backgroundColor: Colors.white.withOpacity(0.05),
+                    color: rankColor,
+                    minHeight: 4,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  "${levelInfo.xp} XP / ${levelInfo.xpForNextLevel} XP to next lvl",
+                  style: const TextStyle(
+                    color: Colors.white38,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 30),
