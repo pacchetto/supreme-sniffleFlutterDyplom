@@ -5,9 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'l10n/app_localizations.dart';
 import 'main_screen.dart';
 import 'auth_page.dart';
 import 'dart:async';
+import 'locale_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,14 +25,18 @@ Future<void> main() async {
   runApp(const ProviderScope(child: AetheriaApp()));
 }
 
-class AetheriaApp extends StatelessWidget {
+class AetheriaApp extends ConsumerWidget {
   const AetheriaApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentLocale = ref.watch(localeProvider);
     return MaterialApp(
       title: 'AetheriaGraph',
       debugShowCheckedModeBanner: false,
+      locale: currentLocale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: ThemeData(
         brightness: Brightness.dark,
         splashFactory: InkRipple.splashFactory,
