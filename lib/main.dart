@@ -8,11 +8,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'main_screen.dart';
 import 'auth_page.dart';
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final ValueNotifier<bool> isDeveloperMode = ValueNotifier<bool>(false);
   // 1. Завантажуємо змінні середовища (ЗБЕРЕЖЕНО)
   await dotenv.load(fileName: ".env");
 

@@ -698,7 +698,7 @@ class SettingsPage extends ConsumerWidget {
                         ScaffoldMessenger.of(context).clearSnackBars();
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text("[SYSTEM]: Ядро вже откалібровано."),
+                            content: Text("[SYSTEM]: Ядро вже відкалібровано."),
                           ),
                         );
                         return;
@@ -738,18 +738,19 @@ class SettingsPage extends ConsumerWidget {
                     },
 
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      color: Colors.transparent, // Розширюємо область тапу
-                      child: Text(
-                        "ВЕРСІЯ ДОДАТКА: 1.0.4+2026",
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.2),
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 10,
+                        ),
+                        child: Text(
+                          "v1.0.0-build.42",
+                          style: TextStyle(
+                            color: Colors.white24, // Сірий непомітний колір
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 1.2,
+                          ),
                         ),
                       ),
                     ),

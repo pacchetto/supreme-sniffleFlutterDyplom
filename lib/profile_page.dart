@@ -205,9 +205,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         : const Color(0xFF1A1A1A);
 
     ref.listen<SettingsState>(settingsProvider, (previous, next) {
-      if (next.isDevMode == true && !_isGameVisible) {
+      if (next.isDevMode != _isGameVisible) {
         setState(() {
-          _isGameVisible = true;
+          _isGameVisible = next.isDevMode;
         });
       }
     });
@@ -755,7 +755,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 }
               },
               child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 10, horizontal: 40),
+                padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
                 child: Text(
                   "v1.0.0-build.42",
                   style: TextStyle(
@@ -770,7 +770,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
 
           // -------------------------------------------------------------------
-          const SizedBox(height: 40),
+          const SizedBox(height: 80),
         ],
       ),
     );
