@@ -6,7 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'main_screen.dart';
-import 'auth_page.dart'; // Імпортуємо твій новий файл екрану входу
+import 'auth_page.dart';
+import 'dart:async';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -92,11 +93,19 @@ class _AuthGateState extends State<AuthGate> {
   bool _isLoading = true;
   Session? _currentSession;
 
+  StreamSubscription<AuthState>? _authSubscription;
+
   @override
   void initState() {
     super.initState();
     _checkInitialSession();
     _listenToAuthChanges();
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
   }
 
   // Перевірка сесії при старті додатка
@@ -112,7 +121,9 @@ class _AuthGateState extends State<AuthGate> {
 
   // Постійний слухач змін (вхід, вихід, ресет)
   void _listenToAuthChanges() {
-    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((
+      data,
+    ) {
       final AuthChangeEvent event = data.event;
       final Session? session = data.session;
 
@@ -144,24 +155,19 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   Widget build(BuildContext context) {
-    // Поки перевіряємо токери в пам'яті — гарний чорний індикатор у твоїй палітрі
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: Color(0xFF050505),
         body: Center(
-          child: CircularProgressIndicator(
-            color: Color(0xFFFF007F), // Neon Pink індикатор
-          ),
+          child: CircularProgressIndicator(color: Color(0xFFFF007F)),
         ),
       );
     }
 
-    // Якщо користувач залогінений (анонімно або по email) -> показуємо твій оригінальний екран
     if (_currentSession != null) {
       return const MainScreen();
     }
 
-    // Якщо не залогінений (або після ресету) -> показуємо новий AuthPage
     return const AuthPage();
   }
 }

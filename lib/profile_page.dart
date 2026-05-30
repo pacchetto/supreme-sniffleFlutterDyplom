@@ -3,6 +3,7 @@
 import 'package:aetheria_graph_app/providers/user_data_provider.dart';
 import 'package:aetheria_graph_app/settings_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // ДОДАНО: Для HapticFeedback (вібровідгук)
 import 'package:fl_chart/fl_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'supabase_repository.dart';
@@ -142,27 +143,25 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   };
 
   bool _zenNotifications = false;
+  // ignore: unused_field
   bool _isLoading = true;
   String _selectedPeriod = '7D';
 
   final Color neonPink = const Color(0xFFFF007F);
-  // Видимість міні-гри (за замовчуванням прихована)
-  bool _isGameVisible = false;
+
+  // -------------------------------------------------------------------
+  // ПАСХАЛКА: Змінні для гри
+  // -------------------------------------------------------------------
+  bool _isGameVisible = false; // Гра прихована за замовчуванням
+  int _versionClickCount = 0; // Лічильник кліків по версії
+  // -------------------------------------------------------------------
+
   int get _currentDayIndex => DateTime.now().weekday - 1;
 
   @override
   void initState() {
     super.initState();
     _initAppWithRealData();
-
-    // Слідкуємо за зміною режиму розробника в налаштуваннях, щоб показати гру
-    ref.listen<SettingsState>(settingsProvider, (previous, next) {
-      if (next.isDevMode == true && !_isGameVisible) {
-        setState(() {
-          _isGameVisible = true;
-        });
-      }
-    });
   }
 
   @override
@@ -205,6 +204,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         ? const Color(0xFF000000)
         : const Color(0xFF1A1A1A);
 
+    ref.listen<SettingsState>(settingsProvider, (previous, next) {
+      if (next.isDevMode == true && !_isGameVisible) {
+        setState(() {
+          _isGameVisible = true;
+        });
+      }
+    });
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
@@ -598,7 +604,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ),
           ),
 
-          // ІНТЕГРОВАНА МІНІ-ГРА (ТЕПЕР ЗАПУСКАЄТЬСЯ ЗАВЖДИ ЯК У МИНУЛИХ ВЕРСІЯХ)
+          // ІНТЕГРОВАНА МІНІ-ГРА (ПАСХАЛКА)
           const SizedBox(height: 25),
           if (_isGameVisible)
             CyberRunnerGame(
@@ -705,7 +711,45 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               ),
             ),
           ),
-          const SizedBox(height: 80),
+
+          const SizedBox(height: 30),
+
+          // -------------------------------------------------------------------
+          // ТРИГЕР ПАСХАЛКИ: Версія додатку
+          // -------------------------------------------------------------------
+          Center(
+            child: GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact(); // Легка вібрація на кожен тап
+                _versionClickCount++;
+
+                // Якщо тапнули 5 разів - показуємо гру
+                if (_versionClickCount >= 5) {
+                  setState(() {
+                    _isGameVisible = true;
+                  });
+                  _versionClickCount = 0; // Скидаємо лічильник
+                  // Додаткова трохи сильніша вібрація при розблокуванні
+                  HapticFeedback.mediumImpact();
+                }
+              },
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 10, horizontal: 40),
+                child: Text(
+                  "v1.0.0-build.42",
+                  style: TextStyle(
+                    color: Colors.white24, // Сірий непомітний колір
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // -------------------------------------------------------------------
+          const SizedBox(height: 40),
         ],
       ),
     );

@@ -238,6 +238,7 @@ class SettingsPage extends ConsumerWidget {
         ref.read(settingsProvider.notifier).setTempAvatar(image.path);
       }
     } catch (e) {
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Не вдалося отримати доступ до сховища")),
       );
@@ -688,7 +689,20 @@ class SettingsPage extends ConsumerWidget {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 14.0),
                   child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     onTap: () async {
+                      final isDevMode = ref
+                          .read(settingsProvider)
+                          .isDevMode; // або як влаштований твій state
+                      if (isDevMode) {
+                        ScaffoldMessenger.of(context).clearSnackBars();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("[SYSTEM]: Ядро вже откалібровано."),
+                          ),
+                        );
+                        return;
+                      }
                       HapticFeedback.lightImpact();
                       _versionClicks++;
                       const int requiredClicks = 5;
