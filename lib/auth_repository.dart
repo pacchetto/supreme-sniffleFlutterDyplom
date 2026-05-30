@@ -64,4 +64,27 @@ class AuthRepository {
       rethrow;
     }
   }
+
+  // 5. ЗАПИТ НА СКИДАННЯ ПАРОЛЯ (Надсилає кібер-лінк на пошту)
+  Future<void> resetPassword({required String email}) async {
+    try {
+      await _supabase.auth.resetPasswordForEmail(
+        email,
+        redirectTo: kIsWeb ? null : 'io.supabase.cybermonk://reset-callback',
+      );
+    } catch (e) {
+      if (kDebugMode) debugPrint("⛔ Помилка запиту скидання пароля: $e");
+      rethrow;
+    }
+  }
+
+  // 6. ВСТАНОВЛЕННЯ НОВОГО ПАРОЛЯ
+  Future<void> updatePassword({required String newPassword}) async {
+    try {
+      await _supabase.auth.updateUser(UserAttributes(password: newPassword));
+    } catch (e) {
+      if (kDebugMode) debugPrint("⛔ Помилка оновлення пароля: $e");
+      rethrow;
+    }
+  }
 }

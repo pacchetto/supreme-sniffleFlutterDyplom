@@ -154,6 +154,7 @@ class _SessionPageState extends ConsumerState<SessionPage>
     _sessionTimer?.cancel();
     if (!mounted) return;
 
+    // ignore: unused_local_variable
     final int secondsPassed = _elapsedSecondsNotifier.value;
     final int meditatedMinutes = (_elapsedSecondsNotifier.value / 60).ceil();
 
@@ -170,6 +171,7 @@ class _SessionPageState extends ConsumerState<SessionPage>
 
       await repo.updateFocusInCloud(currentDay, 50.0);
 
+      // ignore: unused_local_variable
       final newXp = await repo.addXpAndGetNew(10);
 
       if (meditatedMinutes > 0) {

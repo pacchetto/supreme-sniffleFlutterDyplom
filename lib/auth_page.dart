@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'auth_repository.dart';
-import 'main_screen.dart'; // Додали імпорт головного екрана для гарантованого переходу
+import 'main_screen.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -17,15 +19,33 @@ class _AuthPageState extends State<AuthPage> {
 
   bool isLoginMode = true;
   bool isLoading = false;
+  StreamSubscription<AuthState>? _authSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupAuthListener();
+  }
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  // Функція гарантованого переходу на головну сторінку
+  /// Слухач глибоких посилань (Deep Links) від Supabase
+  void _setupAuthListener() {
+    _authSubscription = _authRepo.authStateChanges.listen((data) {
+      final AuthChangeEvent event = data.event;
+      if (event == AuthChangeEvent.passwordRecovery) {
+        // Якщо подія — відновлення пароля, показуємо вікно зміни пароля
+        _showNewPasswordDialog();
+      }
+    });
+  }
+
   void _navigateToHome() {
     if (mounted) {
       Navigator.of(context).pushReplacement(
@@ -87,11 +107,173 @@ class _AuthPageState extends State<AuthPage> {
     );
   }
 
+  // === ВІКНО ВВЕДЕННЯ НОВОГО ПАРОЛЯ ===
+  void _showNewPasswordDialog() {
+    final newPasswordController = TextEditingController();
+    final dialogFormKey = GlobalKey<FormState>();
+    final pinkColor = Theme.of(context).colorScheme.primary;
+    final purpleColor = Theme.of(context).colorScheme.secondary;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Користувач мусить змінити пароль
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1A1A1E),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: purpleColor.withOpacity(0.5), width: 1.5),
+            ),
+            title: Row(
+              children: [
+                Icon(Icons.vpn_key_rounded, color: purpleColor, size: 22),
+                const SizedBox(width: 12),
+                const Text(
+                  "NEW ACCESS CODE",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    letterSpacing: 1.5,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            content: Form(
+              key: dialogFormKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    "Введіть новий безпечний пароль для вашого нейропрофілю.",
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: newPasswordController,
+                    obscureText: true,
+                    style: const TextStyle(color: Colors.white),
+                    cursorColor: purpleColor,
+                    decoration: _buildInputDecoration(
+                      "NEW PASSWORD",
+                      Icons.lock_reset_rounded,
+                      purpleColor,
+                    ),
+                    validator: (v) =>
+                        v == null || v.length < 6 ? "Мінімум 6 символів" : null,
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        if (!dialogFormKey.currentState!.validate()) return;
+
+                        setDialogState(() => isLoading = true);
+                        try {
+                          await _authRepo.updatePassword(
+                            newPassword: newPasswordController.text.trim(),
+                          );
+                          if (context.mounted) {
+                            Navigator.pop(context); // Закриваємо цей діалог
+                          }
+
+                          _showCyberDialog(
+                            title: "УСПІХ",
+                            message:
+                                "Ваш пароль успішно оновлено в хмарі. Тепер ви можете увійти.",
+                            icon: Icons.check_circle_outline_rounded,
+                            accentColor: purpleColor,
+                          );
+                        } catch (e) {
+                          _showCyberDialog(
+                            title: "ПОМИЛКА СИНХРОНІЗАЦІЇ",
+                            message: e.toString(),
+                            icon: Icons.error_outline,
+                            accentColor: pinkColor,
+                          );
+                        } finally {
+                          setDialogState(() => isLoading = false);
+                        }
+                      },
+                style: TextButton.styleFrom(foregroundColor: purpleColor),
+                child: isLoading
+                    ? const SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.purple,
+                        ),
+                      )
+                    : const Text(
+                        "SAVE PASSWORD",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  /// Логіка натискання на кнопку "Забули пароль"
+  void _handleForgotPassword() async {
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty || !email.contains('@')) {
+      _showCyberDialog(
+        title: "ПОМИЛКА ДАНИХ",
+        message:
+            "Будь ласка, спочатку введіть коректний Email у поле вище, щоб ми надіслали лінк для відновлення доступу.",
+        icon: Icons.warning_amber_rounded,
+        accentColor: Theme.of(context).colorScheme.primary,
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+    final Color pinkColor = Theme.of(context).colorScheme.primary;
+    final Color purpleColor = Theme.of(context).colorScheme.secondary;
+
+    try {
+      await _authRepo.resetPassword(email: email);
+      _showCyberDialog(
+        title: "ВІДНОВЛЕННЯ",
+        message:
+            "Кібер-лінк для скидання пароля надіслано на вашу пошту. Перевірте скриньку.",
+        icon: Icons.mark_email_read_outlined,
+        accentColor: purpleColor,
+      );
+    } catch (e) {
+      String friendlyMessage = e.toString();
+
+      if (friendlyMessage.contains("rate_limit_exceeded") ||
+          friendlyMessage.contains("429")) {
+        friendlyMessage =
+            "Занадто багато запитів. Будь ласка, зачекайте хвилину перед наступною спробою відновлення доступу.";
+      }
+
+      _showCyberDialog(
+        title: "КІБЕР-ЗАХИСТ",
+        message: friendlyMessage,
+        icon: Icons.gpp_bad_outlined,
+        accentColor: pinkColor,
+      );
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => isLoading = true);
-
     final Color pinkColor = Theme.of(context).colorScheme.primary;
     final Color purpleColor = Theme.of(context).colorScheme.secondary;
 
@@ -101,7 +283,6 @@ class _AuthPageState extends State<AuthPage> {
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
-        // Гарантовано перенаправляємо на головну сторінку після успішного входу
         _navigateToHome();
       } else {
         await _authRepo.signUpWithEmail(
@@ -109,11 +290,10 @@ class _AuthPageState extends State<AuthPage> {
           password: _passwordController.text.trim(),
         );
 
-        // Вікно успішної реєстрації у фіолетовому неоні
         _showCyberDialog(
           title: "ВЕРИФІКАЦІЯ",
           message:
-              "Запит надіслано успішно. Будь ласка, перевірте вашу електронну пошту для активації акаунта перед тим, як увійти.",
+              "Запит надіслано успішно. Будь ласка, перевірте вашу електронну пошту для активації акаунта.",
           icon: Icons.alternate_email_rounded,
           accentColor: purpleColor,
         );
@@ -145,7 +325,6 @@ class _AuthPageState extends State<AuthPage> {
     setState(() => isLoading = true);
     try {
       await _authRepo.signInAnonymously();
-      // Гарантовано перенаправляємо на головну сторінку для гостей
       _navigateToHome();
     } catch (e) {
       // ignore: use_build_context_synchronously
@@ -233,6 +412,27 @@ class _AuthPageState extends State<AuthPage> {
                         ? "Пароль має бути від 6 символів"
                         : null,
                   ),
+
+                  // === КНОПКА СКИДАННЯ ПАРОЛЯ ===
+                  if (isLoginMode) ...[
+                    const SizedBox(height: 6),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: isLoading ? null : _handleForgotPassword,
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.white30,
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 0),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text(
+                          "FORGOT PASSWORD?",
+                          style: TextStyle(fontSize: 11, letterSpacing: 1.5),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 24),
 
                   // ГОЛОВНА КНОПКА (ENTER)
