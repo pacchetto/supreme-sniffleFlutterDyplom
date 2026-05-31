@@ -28,7 +28,7 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
   final ScrollController _scrollController = ScrollController();
 
   // Початкові повідомлення
-  List<ChatMessage> _messages = [];
+  final List<ChatMessage> _messages = [];
 
   bool _isLoading = false;
 
