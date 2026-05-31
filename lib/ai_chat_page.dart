@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:aetheria_graph_app/l10n/app_localizations.dart';
 
 // Модель повідомлення
 class ChatMessage {
@@ -27,14 +28,18 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
   final ScrollController _scrollController = ScrollController();
 
   // Початкові повідомлення
-  final List<ChatMessage> _messages = [
-    ChatMessage(
-      text: "Привіт, Traveler. Я твій цифровий гід. Як ти почуваєшся сьогодні?",
-      isAi: true,
-    ),
-  ];
+  List<ChatMessage> _messages = [];
 
   bool _isLoading = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_messages.isEmpty) {
+      final l10n = AppLocalizations.of(context)!;
+      _messages.add(ChatMessage(text: l10n.initialGreeting, isAi: true));
+    }
+  }
 
   // Твій API ключ OpenAI
   final String openAiKey = dotenv.env['GROQ_API_KEY'] ?? "";
@@ -67,6 +72,7 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
     final theme = Theme.of(context);
     final primaryColor =
         theme.colorScheme.primary; // Отримуємо Neon Pink глобально
+    final l10n = AppLocalizations.of(context)!;
 
     showDialog(
       context: context,
@@ -77,20 +83,23 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
             borderRadius: BorderRadius.circular(20),
             side: BorderSide(color: Colors.white.withOpacity(0.1)),
           ),
-          title: const Text(
-            "Очистити чат?",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          title: Text(
+            l10n.clearChatQuestion,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          content: const Text(
-            "Уся історія повідомлень з Cyber Guide буде видалена безповоротно.",
-            style: TextStyle(color: Colors.white70),
+          content: Text(
+            l10n.clearChatWarning,
+            style: const TextStyle(color: Colors.white70),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text(
-                "Скасувати",
-                style: TextStyle(color: Colors.white38),
+              child: Text(
+                l10n.cancel,
+                style: const TextStyle(color: Colors.white38),
               ),
             ),
             TextButton(
@@ -98,17 +107,13 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
                 setState(() {
                   _messages.clear();
                   _messages.add(
-                    ChatMessage(
-                      text:
-                          "Привіт, Traveler. Я твій цифровий гід. Як ти почуваєшся сьогодні?",
-                      isAi: true,
-                    ),
+                    ChatMessage(text: l10n.initialGreeting, isAi: true),
                   );
                 });
                 Navigator.pop(context);
               },
               child: Text(
-                "Очистити",
+                l10n.clear,
                 style: TextStyle(
                   color: primaryColor, // ПІДКЛЮЧЕНО ДО ТЕМИ
                   fontWeight: FontWeight.bold,
@@ -186,6 +191,7 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
+    final l10n = AppLocalizations.of(context)!;
 
     // СИНХРОНІЗАЦІЯ ДИЗАЙНУ: Слухаємо той самий тумблер з налаштувань!
     final isDarkImmersion = ref.watch(darkImmersionProvider);
@@ -213,16 +219,16 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.white70),
-            tooltip: "Очистити історію",
+            tooltip: l10n.clearHistory,
             onPressed: _clearChatHistory,
           ),
           const SizedBox(width: 8),
         ],
         title: Column(
           children: [
-            const Text(
-              "Cyber Guide",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              l10n.cyberGuide,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -242,9 +248,9 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
                   ),
                 ),
                 const SizedBox(width: 6),
-                const Text(
-                  "Online",
-                  style: TextStyle(fontSize: 12, color: Colors.white54),
+                Text(
+                  l10n.online,
+                  style: const TextStyle(fontSize: 12, color: Colors.white54),
                 ),
               ],
             ),
@@ -301,7 +307,7 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
                             controller: _controller,
                             style: const TextStyle(color: Colors.white),
                             decoration: InputDecoration(
-                              hintText: "Опиши свій стан...",
+                              hintText: l10n.describeYourState,
                               hintStyle: TextStyle(
                                 color: Colors.white.withOpacity(0.3),
                               ),
@@ -379,6 +385,7 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
   }
 
   Widget _buildTypingIndicator(Color primaryColor) {
+    final l10n = AppLocalizations.of(context)!;
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
@@ -390,7 +397,7 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
           border: Border.all(color: Colors.white.withOpacity(0.05)),
         ),
         child: Text(
-          "Cyber Guide аналізує...",
+          l10n.cyberGuideAnalyzing,
           style: TextStyle(
             color: primaryColor, // ПІДКЛЮЧЕНО ДО ТЕМИ
             fontStyle: FontStyle.italic,

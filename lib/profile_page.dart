@@ -11,6 +11,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aetheria_graph_app/utils/level_system.dart';
 import 'cyber_runner_game.dart';
+import 'package:aetheria_graph_app/l10n/app_localizations.dart';
 
 // ---------------------------------------------------------------------
 // 1. ГЛОБАЛЬНІ РІВЕРПОД-ПРОВАЙДЕРИ ДЛЯ ТЕМИ ТА СИНХРОНІЗАЦІЇ
@@ -278,6 +279,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     int meditationMinutes,
     int clarityLevel,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final Color accentColor = isBioSync ? neonPink : Colors.white54;
     final Color rankColor = levelInfo.rank.color;
     final String? realAvatarUrl = user['avatar_url'];
@@ -447,10 +449,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 // Використовуємо наші динамічні змінні
                 _buildStatCard(
                   formatMeditationTime(meditationMinutes),
-                  "MEDITATED",
+                  l10n.meditated,
                 ),
-                _buildStatCard("$dayStreak", "DAY STREAK", isMain: true),
-                _buildStatCard("$clarityLevel%", "CLARITY"),
+                _buildStatCard("$dayStreak", l10n.dayStreak, isMain: true),
+                _buildStatCard("$clarityLevel%", l10n.clarity),
               ],
             ),
           ),
@@ -648,11 +650,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           const SizedBox(height: 35),
 
           // НАЛАШТУВАННЯ СИСТЕМИ
-          const Align(
+          Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              "SYSTEM PREFERENCES",
-              style: TextStyle(
+              l10n.systemPreferences,
+              style: const TextStyle(
                 color: Colors.white38,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,

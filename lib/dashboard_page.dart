@@ -5,6 +5,7 @@ import 'session_page.dart';
 import 'all_techniques_page.dart';
 // ignore: unused_import
 import 'profile_page.dart';
+import 'package:aetheria_graph_app/l10n/app_localizations.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -14,17 +15,11 @@ class DashboardPage extends ConsumerStatefulWidget {
 }
 
 class _DashboardPageState extends ConsumerState<DashboardPage> {
-  final List<String> categories = [
-    "All",
-    "Chill",
-    "Focus",
-    "Sleep",
-    "Energize",
-  ];
   int activeCategoryIndex = 0;
 
   // 1. МЕТОД ДЛЯ ПОВІДОМЛЕНЬ
   void _showNotifications(Color activePink) {
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -47,11 +42,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.all(24.0),
+            Padding(
+              padding: const EdgeInsets.all(24.0),
               child: Text(
-                "Notifications",
-                style: TextStyle(
+                l10n.notificationsTitle,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -59,14 +54,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               ),
             ),
             _buildNotifyItem(
-              "New Session",
-              "Try the new 'Dream Weaver' for better sleep",
+              l10n.newSession,
+              l10n.newSessionDesc,
               Icons.auto_awesome,
               activePink,
             ),
             _buildNotifyItem(
-              "Goal Reached",
-              "You've completed 3 days streak!",
+              l10n.goalReached,
+              l10n.goalReachedDesc,
               Icons.military_tech,
               activePink,
             ),
@@ -112,6 +107,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // Отримуємо стани з провайдерів
     final isDarkImmersion = ref.watch(darkImmersionProvider);
     final isBioSync = ref.watch(bioSyncProvider);
@@ -129,8 +125,18 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             0xFF00E5FF,
           ); // Спокійний бірюзовий неон (якщо BioSync вимкнено)
 
+    // Динамічні категорії з локалізацією
+    final categories = [
+      l10n.categoryAll,
+      l10n.categoryChill,
+      l10n.categoryFocus,
+      l10n.categorySleep,
+      l10n.categoryEnergize,
+    ];
+
     // ЛОГІКА ФІЛЬТРАЦІЇ
-    String selectedCat = categories[activeCategoryIndex];
+    final categoryKeys = ["All", "Chill", "Focus", "Sleep", "Energize"];
+    String selectedCat = categoryKeys[activeCategoryIndex];
     List<Map<String, dynamic>> filteredTechniques;
 
     if (selectedCat == "All") {
@@ -172,6 +178,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildHeader(Color currentPink) {
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -179,7 +186,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "WELCOME BACK",
+              l10n.welcomeBackLabel,
               style: TextStyle(
                 color: currentPink, // Динамічний колір
                 fontSize: 10,
@@ -188,9 +195,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
-              "Good Evening",
-              style: TextStyle(
+            Text(
+              l10n.goodEvening,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 26,
                 fontWeight: FontWeight.bold,
@@ -272,6 +279,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildFeaturedCard(Color currentPink, bool isBioSync) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       height: 320,
       width: double.infinity,
@@ -322,7 +330,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    isBioSync ? "LIVE GENERATION" : "STANDARD FLOW",
+                    isBioSync ? l10n.liveGeneration : l10n.standardFlow,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 10,
@@ -333,9 +341,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
-              "Daily Generative Flow",
-              style: TextStyle(
+            Text(
+              l10n.dailyGenerativeFlow,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -344,8 +352,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             const SizedBox(height: 20),
             GestureDetector(
               onTap: () => _navigateToPlayer({
-                "title": "Daily Generative Flow",
-                "mode": isBioSync ? "LIVE GENERATION" : "STANDARD FLOW",
+                "title": l10n.dailyGenerativeFlow,
+                "mode": isBioSync ? l10n.liveGeneration : l10n.standardFlow,
                 "color": currentPink,
               }, currentPink),
               child: Container(
@@ -362,18 +370,18 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     ),
                   ],
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.play_arrow_rounded,
                       color: Colors.white,
                       size: 28,
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Text(
-                      "Start Session",
-                      style: TextStyle(
+                      l10n.startSession,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -393,13 +401,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     List<Map<String, dynamic>> currentData,
     Color currentPink,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        const Text(
-          "Breathing Techniques",
-          style: TextStyle(
+        Text(
+          l10n.breathingTechniques,
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -418,7 +427,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 4.0),
             child: Text(
-              "VIEW ALL",
+              l10n.viewAll,
               style: TextStyle(
                 color: currentPink,
                 fontSize: 11,

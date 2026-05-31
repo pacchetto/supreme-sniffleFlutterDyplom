@@ -11,6 +11,8 @@ import 'dart:ui';
 import 'auth_repository.dart';
 import 'auth_page.dart';
 import 'package:aetheria_graph_app/providers/user_data_provider.dart';
+import 'package:aetheria_graph_app/l10n/app_localizations.dart';
+import 'locale_provider.dart';
 // ==========================================
 // 1. ШАР ДАНИХ ТА БІЗНЕС-ЛОГІКИ (RIVERPOD)
 // ==========================================
@@ -83,9 +85,14 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
 
   Future<void> _loadSettingsFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
+
+    // Завантажуємо дані користувача з Supabase через userDataProvider
+    final userData = await ref.read(userDataProvider.future);
+
     state = SettingsState(
-      userName: prefs.getString('user_name') ?? "Traveler",
-      avatarPath: prefs.getString('avatar_path'),
+      userName:
+          userData['username'] ?? prefs.getString('user_name') ?? "Traveler",
+      avatarPath: userData['avatar_url'] ?? prefs.getString('avatar_path'),
       isNotificationsEnabled: prefs.getBool('notifications_enabled') ?? true,
       isSoundsEnabled: prefs.getBool('sounds_enabled') ?? true,
       isDarkImmersion: prefs.getBool('dark_immersion') ?? false,
@@ -251,6 +258,7 @@ class SettingsPage extends ConsumerWidget {
     final controller = TextEditingController(text: oldName);
     final formKey = GlobalKey<FormState>();
     final primaryColor = Theme.of(context).colorScheme.primary;
+    final l10n = AppLocalizations.of(context)!;
 
     showDialog(
       context: context,
@@ -260,9 +268,12 @@ class SettingsPage extends ConsumerWidget {
           borderRadius: BorderRadius.circular(20),
           side: BorderSide(color: Colors.white.withOpacity(0.1)),
         ),
-        title: const Text(
-          "Редагувати профіль",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          l10n.editProfile,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: Form(
           key: formKey,
@@ -273,7 +284,7 @@ class SettingsPage extends ConsumerWidget {
             cursorColor: primaryColor,
             decoration: InputDecoration(
               counterStyle: const TextStyle(color: Colors.white38),
-              hintText: "Введіть нове ім'я",
+              hintText: l10n.enterNewName,
               hintStyle: const TextStyle(color: Colors.white24),
               enabledBorder: UnderlineInputBorder(
                 borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
@@ -284,9 +295,9 @@ class SettingsPage extends ConsumerWidget {
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return "Ім'я не може бути порожнім";
+                return l10n.nameCannotBeEmpty;
               }
-              if (value.trim().length > 30) return "Максимум 30 символів";
+              if (value.trim().length > 30) return l10n.maxThirtyChars;
               return null;
             },
           ),
@@ -294,9 +305,9 @@ class SettingsPage extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              "Скасувати",
-              style: TextStyle(color: Colors.white38),
+            child: Text(
+              l10n.cancel,
+              style: const TextStyle(color: Colors.white38),
             ),
           ),
           TextButton(
@@ -309,7 +320,7 @@ class SettingsPage extends ConsumerWidget {
               }
             },
             child: Text(
-              "Застосувати",
+              l10n.apply,
               style: TextStyle(
                 color: primaryColor,
                 fontWeight: FontWeight.bold,
@@ -322,6 +333,7 @@ class SettingsPage extends ConsumerWidget {
   }
 
   void _showSubscriptionAlert(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -330,13 +342,13 @@ class SettingsPage extends ConsumerWidget {
           borderRadius: BorderRadius.circular(20),
           side: BorderSide(color: Colors.white.withOpacity(0.1)),
         ),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.lock_outline, color: Color(0xFFFF007F)),
-            SizedBox(width: 10),
+            const Icon(Icons.lock_outline, color: Color(0xFFFF007F)),
+            const SizedBox(width: 10),
             Text(
-              "Обмеження доступу",
-              style: TextStyle(
+              l10n.accessRestriction,
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
@@ -344,16 +356,16 @@ class SettingsPage extends ConsumerWidget {
             ),
           ],
         ),
-        content: const Text(
-          "Зараз ця функція недоступна у вільному доступі.",
-          style: TextStyle(color: Colors.white70, height: 1.4),
+        content: Text(
+          l10n.featureNotAvailable,
+          style: const TextStyle(color: Colors.white70, height: 1.4),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              "Закрити",
-              style: TextStyle(
+            child: Text(
+              l10n.close,
+              style: const TextStyle(
                 color: Color(0xFFFF007F),
                 fontWeight: FontWeight.bold,
               ),
@@ -392,6 +404,7 @@ class SettingsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
     final primaryColor = Theme.of(context).colorScheme.primary;
+    final l10n = AppLocalizations.of(context)!;
 
     final Color currentBgColor = settings.isDarkImmersion
         ? const Color(0xFF000000)
@@ -552,9 +565,7 @@ class SettingsPage extends ConsumerWidget {
                           )
                         : const Icon(Icons.check, size: 18),
                     label: Text(
-                      settings.isLoading
-                          ? "Синхронізація..."
-                          : "Зберегти зміни",
+                      settings.isLoading ? l10n.syncing : l10n.saveChanges,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -563,44 +574,48 @@ class SettingsPage extends ConsumerWidget {
 
               const Divider(color: Colors.white10, height: 35),
 
-              _buildCategoryHeader("Система та сповіщення"),
+              _buildCategoryHeader(l10n.systemAndNotifications),
+
+              // LANGUAGE SWITCHER
+              _buildLanguageSelector(context, ref, primaryColor),
+
               _buildCustomToggle(
-                title: "Сповіщення",
-                subtitle: "Дозволити push/local notifications",
+                title: l10n.notifications,
+                subtitle: l10n.notificationsDesc,
                 value: settings.isNotificationsEnabled,
                 onChanged: (val) => ref
                     .read(settingsProvider.notifier)
                     .toggleNotifications(val),
               ),
               _buildCustomToggle(
-                title: "Звукові ефекти",
-                subtitle: "Активація системних звуків у додатку",
+                title: l10n.soundEffects,
+                subtitle: l10n.soundEffectsDesc,
                 value: settings.isSoundsEnabled,
                 onChanged: (val) =>
                     ref.read(settingsProvider.notifier).toggleSounds(val),
               ),
 
               const SizedBox(height: 16),
-              _buildCategoryHeader("Параметри занурення"),
+              _buildCategoryHeader(l10n.immersionParams),
               _buildCustomToggle(
-                title: "Dark Immersion",
-                subtitle: "Абсолютно чорний колір фону матриці",
+                title: l10n.darkImmersion,
+                subtitle: l10n.darkImmersionDesc,
                 value: settings.isDarkImmersion,
                 onChanged: (val) => ref
                     .read(settingsProvider.notifier)
                     .toggleDarkImmersion(val),
               ),
               _buildCustomToggle(
-                title: "Bio Sync",
-                subtitle: "Біометрична синхронізація станів",
+                title: l10n.bioSync,
+                subtitle: l10n.bioSyncDesc,
                 value: settings.isBioSync,
                 onChanged: (val) =>
                     ref.read(settingsProvider.notifier).toggleBioSync(val),
               ),
               if (settings.isDevMode)
                 _buildCustomToggle(
-                  title: "Режим розробника",
-                  subtitle: "Активація логів та діагностики (Гра)",
+                  title: l10n.devMode,
+                  subtitle: l10n.devModeDesc,
                   value: settings.isDevMode,
                   onChanged: (val) {
                     ref.read(settingsProvider.notifier).toggleDevMode(val);
@@ -632,16 +647,16 @@ class SettingsPage extends ConsumerWidget {
                       size: 26,
                     ),
                   ),
-                  title: const Text(
-                    "Subscription",
-                    style: TextStyle(
+                  title: Text(
+                    l10n.subscription,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  subtitle: const Text(
-                    "Управління преміум планами",
-                    style: TextStyle(color: Colors.white30, fontSize: 12),
+                  subtitle: Text(
+                    l10n.subscriptionDesc,
+                    style: const TextStyle(color: Colors.white30, fontSize: 12),
                   ),
                   trailing: const Icon(
                     Icons.arrow_forward_ios,
@@ -670,9 +685,9 @@ class SettingsPage extends ConsumerWidget {
                   color: Colors.redAccent,
                   size: 20,
                 ),
-                label: const Text(
-                  "Вийти з акаунта",
-                  style: TextStyle(
+                label: Text(
+                  l10n.logout,
+                  style: const TextStyle(
                     color: Colors.redAccent,
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
@@ -825,7 +840,7 @@ class SettingsPage extends ConsumerWidget {
                                 ),
                               ),
                               Text(
-                                "Налаштування",
+                                l10n.settingsTitle,
                                 style: TextStyle(
                                   color: Colors.white.withOpacity(0.95),
                                   fontWeight: FontWeight.w500,
@@ -903,6 +918,107 @@ class SettingsPage extends ConsumerWidget {
           ),
           value: value,
           onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageSelector(
+    BuildContext context,
+    WidgetRef ref,
+    Color primaryColor,
+  ) {
+    final currentLocale = ref.watch(localeProvider);
+    final l10n = AppLocalizations.of(context)!;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.02),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
+          title: Text(
+            l10n.language,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          subtitle: Text(
+            l10n.languageDesc,
+            style: const TextStyle(color: Colors.white30, fontSize: 12),
+          ),
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: primaryColor.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildLanguageButton(
+                  context: context,
+                  ref: ref,
+                  label: 'UA',
+                  locale: const Locale('uk'),
+                  isSelected: currentLocale.languageCode == 'uk',
+                  primaryColor: primaryColor,
+                ),
+                const SizedBox(width: 4),
+                _buildLanguageButton(
+                  context: context,
+                  ref: ref,
+                  label: 'EN',
+                  locale: const Locale('en'),
+                  isSelected: currentLocale.languageCode == 'en',
+                  primaryColor: primaryColor,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageButton({
+    required BuildContext context,
+    required WidgetRef ref,
+    required String label,
+    required Locale locale,
+    required bool isSelected,
+    required Color primaryColor,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        ref.read(localeProvider.notifier).setLocale(locale);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? primaryColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.white54,
+            fontSize: 14,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            letterSpacing: 1.2,
+          ),
         ),
       ),
     );
