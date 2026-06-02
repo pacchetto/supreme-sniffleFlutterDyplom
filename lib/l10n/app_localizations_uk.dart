@@ -9,7 +9,7 @@ class AppLocalizationsUk extends AppLocalizations {
   AppLocalizationsUk([String locale = 'uk']) : super(locale);
 
   @override
-  String get appTitle => 'CYBER MONK';
+  String get appTitle => 'AETHERIA GRAPH';
 
   @override
   String get welcomeBack => 'WELCOME BACK, ASCETIC';

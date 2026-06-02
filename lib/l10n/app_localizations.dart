@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In uk, this message translates to:
-  /// **'CYBER MONK'**
+  /// **'AETHERIA GRAPH'**
   String get appTitle;
 
   /// No description provided for @welcomeBack.
