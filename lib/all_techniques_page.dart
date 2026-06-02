@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'session_page.dart';
+import 'package:aetheria_graph_app/l10n/app_localizations.dart';
 
 class AllTechniquesPage extends StatelessWidget {
   final List<Map<String, dynamic>> techniques;
@@ -17,6 +18,7 @@ class AllTechniquesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFF050505),
       appBar: AppBar(
@@ -30,9 +32,9 @@ class AllTechniquesPage extends StatelessWidget {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          "All Techniques",
-          style: TextStyle(
+        title: Text(
+          l10n.allTechniquesTitle,
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 18,
             fontWeight: FontWeight.bold,

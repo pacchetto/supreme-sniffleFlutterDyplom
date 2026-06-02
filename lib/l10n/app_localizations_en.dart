@@ -390,4 +390,185 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get back => 'Back';
+
+  @override
+  String get breathingPhaseReady => 'READY';
+
+  @override
+  String get breathingPhaseInhale => 'INHALE';
+
+  @override
+  String get breathingPhaseHold => 'HOLD';
+
+  @override
+  String get breathingPhaseExhale => 'EXHALE';
+
+  @override
+  String get breathingPhasePaused => 'PAUSED';
+
+  @override
+  String get breathingPhaseFinished => 'FINISHED';
+
+  @override
+  String get sessionModeRelaxation => 'RELAXATION';
+
+  @override
+  String get breathSpeed => 'BREATH SPEED';
+
+  @override
+  String get breathSpeedStill => 'STILL';
+
+  @override
+  String get breathSpeedDynamic => 'DYNAMIC';
+
+  @override
+  String get sessionCompleteMessage => 'SESSION COMPLETE! PROGRESS SAVED 🎉';
+
+  @override
+  String get allTechniquesTitle => 'All Techniques';
+
+  @override
+  String get technique478Title => '4-7-8 Relax';
+
+  @override
+  String get technique478Subtitle =>
+      'Natural tranquilizer for the nervous system';
+
+  @override
+  String get techniqueEqualTitle => 'Equal Breathing';
+
+  @override
+  String get techniqueEqualSubtitle => 'Balances the mind and body';
+
+  @override
+  String get techniqueCoherentTitle => 'Coherent Breath';
+
+  @override
+  String get techniqueCoherentSubtitle => 'Deep calming state';
+
+  @override
+  String get techniqueAntiAnxietyTitle => 'Anti-Anxiety';
+
+  @override
+  String get techniqueAntiAnxietySubtitle => 'Quickly lower cortisol';
+
+  @override
+  String get techniqueBoxTitle => 'Box Breathing';
+
+  @override
+  String get techniqueBoxSubtitle => 'The Navy SEAL technique for focus';
+
+  @override
+  String get techniqueTriangleTitle => 'Triangle Breath';
+
+  @override
+  String get techniqueTriangleSubtitle => 'Sharpen your mental clarity';
+
+  @override
+  String get techniqueMemoryTitle => 'Memory Boost';
+
+  @override
+  String get techniqueMemorySubtitle => 'Improve cognitive retention';
+
+  @override
+  String get techniqueAlphaTitle => 'Alpha Flow';
+
+  @override
+  String get techniqueAlphaSubtitle => 'Enter the flow state';
+
+  @override
+  String get techniqueDeepSleepTitle => 'Deep Sleep';
+
+  @override
+  String get techniqueDeepSleepSubtitle => 'Slow down for the night';
+
+  @override
+  String get techniqueLunarTitle => 'Lunar Rhythm';
+
+  @override
+  String get techniqueLunarSubtitle => 'Cooling and calming';
+
+  @override
+  String get techniqueDeltaTitle => 'Delta Wave';
+
+  @override
+  String get techniqueDeltaSubtitle => 'Prepare for REM sleep';
+
+  @override
+  String get techniqueMuscleTitle => 'Muscle Release';
+
+  @override
+  String get techniqueMuscleSubtitle => 'Drop physical tension';
+
+  @override
+  String get techniqueFireTitle => 'Breath of Fire';
+
+  @override
+  String get techniqueFireSubtitle => 'Rapid energizing breaths';
+
+  @override
+  String get techniqueBellowsTitle => 'Bellows Breath';
+
+  @override
+  String get techniqueBellowsSubtitle => 'Invigorate your senses';
+
+  @override
+  String get techniqueTummoTitle => 'Tummo-lite';
+
+  @override
+  String get techniqueTummoSubtitle => 'Generate internal heat';
+
+  @override
+  String get techniqueWakeTitle => 'Wake Up Call';
+
+  @override
+  String get techniqueWakeSubtitle => 'Replace your morning coffee';
+
+  @override
+  String get modeRelaxation => 'RELAXATION';
+
+  @override
+  String get modeBalance => 'BALANCE';
+
+  @override
+  String get modeZen => 'ZEN';
+
+  @override
+  String get modeCalm => 'CALM';
+
+  @override
+  String get modeTactical => 'TACTICAL';
+
+  @override
+  String get modeSharpen => 'SHARPEN';
+
+  @override
+  String get modeMind => 'MIND';
+
+  @override
+  String get modeFlow => 'FLOW';
+
+  @override
+  String get modeNight => 'NIGHT';
+
+  @override
+  String get modeMoon => 'MOON';
+
+  @override
+  String get modeDelta => 'DELTA';
+
+  @override
+  String get modeRelease => 'RELEASE';
+
+  @override
+  String get modeFire => 'FIRE';
+
+  @override
+  String get modeBoost => 'BOOST';
+
+  @override
+  String get modeHeat => 'HEAT';
+
+  @override
+  String get modeWake => 'WAKE';
 }

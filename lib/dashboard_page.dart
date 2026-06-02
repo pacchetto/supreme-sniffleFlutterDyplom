@@ -1,4 +1,4 @@
-import 'package:aetheria_graph_app/breathing_data.dart';
+import 'package:aetheria_graph_app/breathing_data_localized.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'session_page.dart';
@@ -126,7 +126,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           ); // Спокійний бірюзовий неон (якщо BioSync вимкнено)
 
     // Динамічні категорії з локалізацією
-    // ignore: unused_local_variable
     final categories = [
       l10n.categoryAll,
       l10n.categoryChill,
@@ -134,6 +133,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       l10n.categorySleep,
       l10n.categoryEnergize,
     ];
+
+    // Отримуємо локалізовані техніки
+    final breathingTechniques = getLocalizedBreathingTechniques(context);
 
     // ЛОГІКА ФІЛЬТРАЦІЇ
     final categoryKeys = ["All", "Chill", "Focus", "Sleep", "Energize"];
@@ -231,6 +233,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildCategories(Color currentPink) {
+    final l10n = AppLocalizations.of(context)!;
+    final categories = [
+      l10n.categoryAll,
+      l10n.categoryChill,
+      l10n.categoryFocus,
+      l10n.categorySleep,
+      l10n.categoryEnergize,
+    ];
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),

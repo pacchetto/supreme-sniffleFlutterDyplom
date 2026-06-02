@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'auth_repository.dart';
 import 'main_screen.dart';
+import 'package:aetheria_graph_app/l10n/app_localizations.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -62,6 +63,7 @@ class _AuthPageState extends State<AuthPage> {
     required Color accentColor,
   }) {
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -97,9 +99,12 @@ class _AuthPageState extends State<AuthPage> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             style: TextButton.styleFrom(foregroundColor: accentColor),
-            child: const Text(
-              "ОК",
-              style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
+            child: Text(
+              l10n.ok,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
             ),
           ),
         ],
@@ -109,6 +114,7 @@ class _AuthPageState extends State<AuthPage> {
 
   // === ВІКНО ВВЕДЕННЯ НОВОГО ПАРОЛЯ ===
   void _showNewPasswordDialog() {
+    final l10n = AppLocalizations.of(context)!;
     final newPasswordController = TextEditingController();
     final dialogFormKey = GlobalKey<FormState>();
     final pinkColor = Theme.of(context).colorScheme.primary;
@@ -129,9 +135,9 @@ class _AuthPageState extends State<AuthPage> {
               children: [
                 Icon(Icons.vpn_key_rounded, color: purpleColor, size: 22),
                 const SizedBox(width: 12),
-                const Text(
-                  "NEW ACCESS CODE",
-                  style: TextStyle(
+                Text(
+                  l10n.newAccessCode,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     letterSpacing: 1.5,
@@ -145,9 +151,9 @@ class _AuthPageState extends State<AuthPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    "Введіть новий безпечний пароль для вашого нейропрофілю.",
-                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                  Text(
+                    l10n.newPasswordPrompt,
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
@@ -156,12 +162,12 @@ class _AuthPageState extends State<AuthPage> {
                     style: const TextStyle(color: Colors.white),
                     cursorColor: purpleColor,
                     decoration: _buildInputDecoration(
-                      "NEW PASSWORD",
+                      l10n.newPassword,
                       Icons.lock_reset_rounded,
                       purpleColor,
                     ),
                     validator: (v) =>
-                        v == null || v.length < 6 ? "Мінімум 6 символів" : null,
+                        v == null || v.length < 6 ? l10n.minSixChars : null,
                   ),
                 ],
               ),
@@ -183,15 +189,14 @@ class _AuthPageState extends State<AuthPage> {
                           }
 
                           _showCyberDialog(
-                            title: "УСПІХ",
-                            message:
-                                "Ваш пароль успішно оновлено в хмарі. Тепер ви можете увійти.",
+                            title: l10n.success,
+                            message: l10n.passwordUpdated,
                             icon: Icons.check_circle_outline_rounded,
                             accentColor: purpleColor,
                           );
                         } catch (e) {
                           _showCyberDialog(
-                            title: "ПОМИЛКА СИНХРОНІЗАЦІЇ",
+                            title: l10n.syncError,
                             message: e.toString(),
                             icon: Icons.error_outline,
                             accentColor: pinkColor,
@@ -210,9 +215,9 @@ class _AuthPageState extends State<AuthPage> {
                           color: Colors.purple,
                         ),
                       )
-                    : const Text(
-                        "SAVE PASSWORD",
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                    : Text(
+                        l10n.savePassword,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
               ),
             ],
@@ -224,13 +229,13 @@ class _AuthPageState extends State<AuthPage> {
 
   /// Логіка натискання на кнопку "Забули пароль"
   void _handleForgotPassword() async {
+    final l10n = AppLocalizations.of(context)!;
     final email = _emailController.text.trim();
 
     if (email.isEmpty || !email.contains('@')) {
       _showCyberDialog(
-        title: "ПОМИЛКА ДАНИХ",
-        message:
-            "Будь ласка, спочатку введіть коректний Email у поле вище, щоб ми надіслали лінк для відновлення доступу.",
+        title: l10n.dataError,
+        message: l10n.forgotPasswordPrompt,
         icon: Icons.warning_amber_rounded,
         accentColor: Theme.of(context).colorScheme.primary,
       );
@@ -244,9 +249,8 @@ class _AuthPageState extends State<AuthPage> {
     try {
       await _authRepo.resetPassword(email: email);
       _showCyberDialog(
-        title: "ВІДНОВЛЕННЯ",
-        message:
-            "Кібер-лінк для скидання пароля надіслано на вашу пошту. Перевірте скриньку.",
+        title: l10n.recovery,
+        message: l10n.resetLinkSent,
         icon: Icons.mark_email_read_outlined,
         accentColor: purpleColor,
       );
@@ -255,12 +259,11 @@ class _AuthPageState extends State<AuthPage> {
 
       if (friendlyMessage.contains("rate_limit_exceeded") ||
           friendlyMessage.contains("429")) {
-        friendlyMessage =
-            "Занадто багато запитів. Будь ласка, зачекайте хвилину перед наступною спробою відновлення доступу.";
+        friendlyMessage = l10n.rateLimitError;
       }
 
       _showCyberDialog(
-        title: "КІБЕР-ЗАХИСТ",
+        title: l10n.cyberProtection,
         message: friendlyMessage,
         icon: Icons.gpp_bad_outlined,
         accentColor: pinkColor,
@@ -273,6 +276,7 @@ class _AuthPageState extends State<AuthPage> {
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final l10n = AppLocalizations.of(context)!;
     setState(() => isLoading = true);
     final Color pinkColor = Theme.of(context).colorScheme.primary;
     final Color purpleColor = Theme.of(context).colorScheme.secondary;
@@ -291,9 +295,8 @@ class _AuthPageState extends State<AuthPage> {
         );
 
         _showCyberDialog(
-          title: "ВЕРИФІКАЦІЯ",
-          message:
-              "Запит надіслано успішно. Будь ласка, перевірте вашу електронну пошту для активації акаунта.",
+          title: l10n.verification,
+          message: l10n.checkEmailActivation,
           icon: Icons.alternate_email_rounded,
           accentColor: purpleColor,
         );
@@ -302,16 +305,15 @@ class _AuthPageState extends State<AuthPage> {
       String friendlyMessage = e.toString();
       if (friendlyMessage.contains("invalid_credentials") ||
           friendlyMessage.contains("Invalid login credentials")) {
-        friendlyMessage =
-            "Невірний Email або пароль. Перевірте правильність введених даних.";
+        friendlyMessage = l10n.invalidCredentials;
       } else if (friendlyMessage.contains("network")) {
-        friendlyMessage = "Помилка мережі. Перевірте з'єднання з інтернетом.";
+        friendlyMessage = l10n.networkError;
       } else if (friendlyMessage.contains("User already registered")) {
-        friendlyMessage = "Цей користувач уже зареєстрований у системі.";
+        friendlyMessage = l10n.userAlreadyRegistered;
       }
 
       _showCyberDialog(
-        title: "ПОМИЛКА ДОСТУПУ",
+        title: l10n.accessError,
         message: friendlyMessage,
         icon: Icons.gpp_bad_outlined,
         accentColor: pinkColor,
@@ -322,6 +324,7 @@ class _AuthPageState extends State<AuthPage> {
   }
 
   void _continueAsGuest() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => isLoading = true);
     try {
       await _authRepo.signInAnonymously();
@@ -330,8 +333,8 @@ class _AuthPageState extends State<AuthPage> {
       // ignore: use_build_context_synchronously
       final Color pinkColor = Theme.of(context).colorScheme.primary;
       _showCyberDialog(
-        title: "ПОМИЛКА ГУЕСТА",
-        message: "Не вдалося ініціалізувати анонімний сеанс: ${e.toString()}",
+        title: l10n.guestError,
+        message: l10n.anonymousSessionError(e.toString()),
         icon: Icons.gpp_bad_outlined,
         accentColor: pinkColor,
       );
@@ -342,6 +345,7 @@ class _AuthPageState extends State<AuthPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final Color pinkColor = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
@@ -357,7 +361,7 @@ class _AuthPageState extends State<AuthPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    "CYBER MONK",
+                    l10n.appTitle,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: pinkColor,
@@ -368,9 +372,7 @@ class _AuthPageState extends State<AuthPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    isLoginMode
-                        ? "WELCOME BACK, ASCETIC"
-                        : "START YOUR IMMERSION",
+                    isLoginMode ? l10n.welcomeBack : l10n.startImmersion,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.4),
@@ -387,12 +389,12 @@ class _AuthPageState extends State<AuthPage> {
                     style: const TextStyle(color: Colors.white),
                     cursorColor: pinkColor,
                     decoration: _buildInputDecoration(
-                      "EMAIL",
+                      l10n.email,
                       Icons.alternate_email_rounded,
                       pinkColor,
                     ),
                     validator: (v) => v == null || !v.contains('@')
-                        ? "Некоректний Email"
+                        ? l10n.invalidEmail
                         : null,
                   ),
                   const SizedBox(height: 16),
@@ -404,12 +406,12 @@ class _AuthPageState extends State<AuthPage> {
                     style: const TextStyle(color: Colors.white),
                     cursorColor: pinkColor,
                     decoration: _buildInputDecoration(
-                      "PASSWORD",
+                      l10n.password,
                       Icons.lock_outline_rounded,
                       pinkColor,
                     ),
                     validator: (v) => v == null || v.length < 6
-                        ? "Пароль має бути від 6 символів"
+                        ? l10n.passwordMinLength
                         : null,
                   ),
 
@@ -426,9 +428,12 @@ class _AuthPageState extends State<AuthPage> {
                           minimumSize: const Size(0, 0),
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: const Text(
-                          "FORGOT PASSWORD?",
-                          style: TextStyle(fontSize: 11, letterSpacing: 1.5),
+                        child: Text(
+                          l10n.forgotPassword,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            letterSpacing: 1.5,
+                          ),
                         ),
                       ),
                     ),
@@ -456,7 +461,7 @@ class _AuthPageState extends State<AuthPage> {
                             ),
                           )
                         : Text(
-                            isLoginMode ? "ENTER" : "CREATE ACCOUNT",
+                            isLoginMode ? l10n.enter : l10n.createAccount,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
@@ -473,28 +478,28 @@ class _AuthPageState extends State<AuthPage> {
                     ),
                     child: Text(
                       isLoginMode
-                          ? "NEW MONK? REGISTER HERE"
-                          : "ALREADY HAVE AN ACCOUNT? LOGIN",
+                          ? l10n.newMonkRegister
+                          : l10n.alreadyHaveAccount,
                       style: const TextStyle(fontSize: 13, letterSpacing: 1),
                     ),
                   ),
 
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20.0),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20.0),
                     child: Row(
                       children: [
-                        Expanded(child: Divider(color: Colors.white12)),
+                        const Expanded(child: Divider(color: Colors.white12)),
                         Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16.0),
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
                           child: Text(
-                            "OR",
-                            style: TextStyle(
+                            l10n.or,
+                            style: const TextStyle(
                               color: Colors.white24,
                               fontSize: 12,
                             ),
                           ),
                         ),
-                        Expanded(child: Divider(color: Colors.white12)),
+                        const Expanded(child: Divider(color: Colors.white12)),
                       ],
                     ),
                   ),
@@ -509,9 +514,9 @@ class _AuthPageState extends State<AuthPage> {
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    child: const Text(
-                      "CONTINUE AS GUEST",
-                      style: TextStyle(
+                    child: Text(
+                      l10n.continueAsGuest,
+                      style: const TextStyle(
                         color: Colors.white,
                         letterSpacing: 1.5,
                         fontSize: 14,

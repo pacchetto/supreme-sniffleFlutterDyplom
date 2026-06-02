@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aetheria_graph_app/providers/user_data_provider.dart';
+import 'package:aetheria_graph_app/l10n/app_localizations.dart';
 
 class SessionPage extends ConsumerStatefulWidget {
   final Map<String, dynamic> techniqueData;
@@ -84,6 +85,26 @@ class _SessionPageState extends ConsumerState<SessionPage>
     return Duration(
       milliseconds: ((_totalDuration / breathSpeed) * 1000).round(),
     );
+  }
+
+  String _getLocalizedPhase(String phaseKey) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (phaseKey) {
+      case "READY":
+        return l10n.breathingPhaseReady;
+      case "INHALE":
+        return l10n.breathingPhaseInhale;
+      case "HOLD":
+        return l10n.breathingPhaseHold;
+      case "EXHALE":
+        return l10n.breathingPhaseExhale;
+      case "PAUSED":
+        return l10n.breathingPhasePaused;
+      case "FINISHED":
+        return l10n.breathingPhaseFinished;
+      default:
+        return phaseKey;
+    }
   }
 
   void _updatePhaseText() {
@@ -246,6 +267,7 @@ class _SessionPageState extends ConsumerState<SessionPage>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final Color themeColor =
         widget.techniqueData["color"] ?? const Color(0xFF4AF2A1);
     final String title = widget.techniqueData["title"] ?? "4-7-8 Relax";
@@ -298,9 +320,9 @@ class _SessionPageState extends ConsumerState<SessionPage>
                             ),
                           ),
                           const SizedBox(width: 8),
-                          const Text(
-                            "RELAXATION",
-                            style: TextStyle(
+                          Text(
+                            l10n.sessionModeRelaxation,
+                            style: const TextStyle(
                               color: Colors.white60,
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -324,7 +346,7 @@ class _SessionPageState extends ConsumerState<SessionPage>
                   return AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
                     child: Text(
-                      phase,
+                      _getLocalizedPhase(phase),
                       key: ValueKey<String>(phase),
                       style: const TextStyle(
                         color: Colors.white,
@@ -396,7 +418,7 @@ class _SessionPageState extends ConsumerState<SessionPage>
                 child: Column(
                   children: [
                     Text(
-                      "BREATH SPEED",
+                      l10n.breathSpeed,
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.3),
                         fontSize: 11,
@@ -431,7 +453,7 @@ class _SessionPageState extends ConsumerState<SessionPage>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            "STILL",
+                            l10n.breathSpeedStill,
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.2),
                               fontSize: 11,
@@ -439,7 +461,7 @@ class _SessionPageState extends ConsumerState<SessionPage>
                             ),
                           ),
                           Text(
-                            "DYNAMIC",
+                            l10n.breathSpeedDynamic,
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.2),
                               fontSize: 11,

@@ -389,4 +389,185 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get back => 'Назад';
+
+  @override
+  String get breathingPhaseReady => 'ГОТОВО';
+
+  @override
+  String get breathingPhaseInhale => 'ВДИХ';
+
+  @override
+  String get breathingPhaseHold => 'ЗАТРИМКА';
+
+  @override
+  String get breathingPhaseExhale => 'ВИДИХ';
+
+  @override
+  String get breathingPhasePaused => 'ПАУЗА';
+
+  @override
+  String get breathingPhaseFinished => 'ЗАВЕРШЕНО';
+
+  @override
+  String get sessionModeRelaxation => 'РЕЛАКСАЦІЯ';
+
+  @override
+  String get breathSpeed => 'ШВИДКІСТЬ ДИХАННЯ';
+
+  @override
+  String get breathSpeedStill => 'ПОВІЛЬНО';
+
+  @override
+  String get breathSpeedDynamic => 'ДИНАМІЧНО';
+
+  @override
+  String get sessionCompleteMessage => 'СЕСІЮ ЗАВЕРШЕНО! ПРОГРЕС ЗБЕРЕЖЕНО 🎉';
+
+  @override
+  String get allTechniquesTitle => 'Усі техніки';
+
+  @override
+  String get technique478Title => '4-7-8 Релакс';
+
+  @override
+  String get technique478Subtitle =>
+      'Природний транквілізатор для нервової системи';
+
+  @override
+  String get techniqueEqualTitle => 'Рівне дихання';
+
+  @override
+  String get techniqueEqualSubtitle => 'Балансує розум і тіло';
+
+  @override
+  String get techniqueCoherentTitle => 'Когерентне дихання';
+
+  @override
+  String get techniqueCoherentSubtitle => 'Глибокий заспокійливий стан';
+
+  @override
+  String get techniqueAntiAnxietyTitle => 'Анти-тривога';
+
+  @override
+  String get techniqueAntiAnxietySubtitle => 'Швидко знижує кортизол';
+
+  @override
+  String get techniqueBoxTitle => 'Квадратне дихання';
+
+  @override
+  String get techniqueBoxSubtitle => 'Техніка Navy SEAL для концентрації';
+
+  @override
+  String get techniqueTriangleTitle => 'Трикутне дихання';
+
+  @override
+  String get techniqueTriangleSubtitle => 'Загострює ментальну ясність';
+
+  @override
+  String get techniqueMemoryTitle => 'Підсилення пам\'яті';
+
+  @override
+  String get techniqueMemorySubtitle => 'Покращує когнітивне утримання';
+
+  @override
+  String get techniqueAlphaTitle => 'Альфа-потік';
+
+  @override
+  String get techniqueAlphaSubtitle => 'Увійти в стан потоку';
+
+  @override
+  String get techniqueDeepSleepTitle => 'Глибокий сон';
+
+  @override
+  String get techniqueDeepSleepSubtitle => 'Уповільнення на ніч';
+
+  @override
+  String get techniqueLunarTitle => 'Місячний ритм';
+
+  @override
+  String get techniqueLunarSubtitle => 'Охолодження та заспокоєння';
+
+  @override
+  String get techniqueDeltaTitle => 'Дельта-хвиля';
+
+  @override
+  String get techniqueDeltaSubtitle => 'Підготовка до REM-сну';
+
+  @override
+  String get techniqueMuscleTitle => 'Розслаблення м\'язів';
+
+  @override
+  String get techniqueMuscleSubtitle => 'Зняття фізичної напруги';
+
+  @override
+  String get techniqueFireTitle => 'Дихання вогню';
+
+  @override
+  String get techniqueFireSubtitle => 'Швидкі енергетичні вдихи';
+
+  @override
+  String get techniqueBellowsTitle => 'Дихання міхів';
+
+  @override
+  String get techniqueBellowsSubtitle => 'Оживляє почуття';
+
+  @override
+  String get techniqueTummoTitle => 'Туммо-лайт';
+
+  @override
+  String get techniqueTummoSubtitle => 'Генерує внутрішнє тепло';
+
+  @override
+  String get techniqueWakeTitle => 'Ранковий дзвінок';
+
+  @override
+  String get techniqueWakeSubtitle => 'Замінює ранкову каву';
+
+  @override
+  String get modeRelaxation => 'РЕЛАКСАЦІЯ';
+
+  @override
+  String get modeBalance => 'БАЛАНС';
+
+  @override
+  String get modeZen => 'ДЗЕН';
+
+  @override
+  String get modeCalm => 'СПОКІЙ';
+
+  @override
+  String get modeTactical => 'ТАКТИЧНИЙ';
+
+  @override
+  String get modeSharpen => 'ЗАГОСТРЕННЯ';
+
+  @override
+  String get modeMind => 'РОЗУМ';
+
+  @override
+  String get modeFlow => 'ПОТІК';
+
+  @override
+  String get modeNight => 'НІЧ';
+
+  @override
+  String get modeMoon => 'МІСЯЦЬ';
+
+  @override
+  String get modeDelta => 'ДЕЛЬТА';
+
+  @override
+  String get modeRelease => 'ЗВІЛЬНЕННЯ';
+
+  @override
+  String get modeFire => 'ВОГОНЬ';
+
+  @override
+  String get modeBoost => 'ПІДСИЛЕННЯ';
+
+  @override
+  String get modeHeat => 'ТЕПЛО';
+
+  @override
+  String get modeWake => 'ПРОБУДЖЕННЯ';
 }

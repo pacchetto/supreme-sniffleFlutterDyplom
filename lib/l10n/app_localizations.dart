@@ -811,6 +811,366 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Назад'**
   String get back;
+
+  /// No description provided for @breathingPhaseReady.
+  ///
+  /// In uk, this message translates to:
+  /// **'ГОТОВО'**
+  String get breathingPhaseReady;
+
+  /// No description provided for @breathingPhaseInhale.
+  ///
+  /// In uk, this message translates to:
+  /// **'ВДИХ'**
+  String get breathingPhaseInhale;
+
+  /// No description provided for @breathingPhaseHold.
+  ///
+  /// In uk, this message translates to:
+  /// **'ЗАТРИМКА'**
+  String get breathingPhaseHold;
+
+  /// No description provided for @breathingPhaseExhale.
+  ///
+  /// In uk, this message translates to:
+  /// **'ВИДИХ'**
+  String get breathingPhaseExhale;
+
+  /// No description provided for @breathingPhasePaused.
+  ///
+  /// In uk, this message translates to:
+  /// **'ПАУЗА'**
+  String get breathingPhasePaused;
+
+  /// No description provided for @breathingPhaseFinished.
+  ///
+  /// In uk, this message translates to:
+  /// **'ЗАВЕРШЕНО'**
+  String get breathingPhaseFinished;
+
+  /// No description provided for @sessionModeRelaxation.
+  ///
+  /// In uk, this message translates to:
+  /// **'РЕЛАКСАЦІЯ'**
+  String get sessionModeRelaxation;
+
+  /// No description provided for @breathSpeed.
+  ///
+  /// In uk, this message translates to:
+  /// **'ШВИДКІСТЬ ДИХАННЯ'**
+  String get breathSpeed;
+
+  /// No description provided for @breathSpeedStill.
+  ///
+  /// In uk, this message translates to:
+  /// **'ПОВІЛЬНО'**
+  String get breathSpeedStill;
+
+  /// No description provided for @breathSpeedDynamic.
+  ///
+  /// In uk, this message translates to:
+  /// **'ДИНАМІЧНО'**
+  String get breathSpeedDynamic;
+
+  /// No description provided for @sessionCompleteMessage.
+  ///
+  /// In uk, this message translates to:
+  /// **'СЕСІЮ ЗАВЕРШЕНО! ПРОГРЕС ЗБЕРЕЖЕНО 🎉'**
+  String get sessionCompleteMessage;
+
+  /// No description provided for @allTechniquesTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Усі техніки'**
+  String get allTechniquesTitle;
+
+  /// No description provided for @technique478Title.
+  ///
+  /// In uk, this message translates to:
+  /// **'4-7-8 Релакс'**
+  String get technique478Title;
+
+  /// No description provided for @technique478Subtitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Природний транквілізатор для нервової системи'**
+  String get technique478Subtitle;
+
+  /// No description provided for @techniqueEqualTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Рівне дихання'**
+  String get techniqueEqualTitle;
+
+  /// No description provided for @techniqueEqualSubtitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Балансує розум і тіло'**
+  String get techniqueEqualSubtitle;
+
+  /// No description provided for @techniqueCoherentTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Когерентне дихання'**
+  String get techniqueCoherentTitle;
+
+  /// No description provided for @techniqueCoherentSubtitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Глибокий заспокійливий стан'**
+  String get techniqueCoherentSubtitle;
+
+  /// No description provided for @techniqueAntiAnxietyTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Анти-тривога'**
+  String get techniqueAntiAnxietyTitle;
+
+  /// No description provided for @techniqueAntiAnxietySubtitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Швидко знижує кортизол'**
+  String get techniqueAntiAnxietySubtitle;
+
+  /// No description provided for @techniqueBoxTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Квадратне дихання'**
+  String get techniqueBoxTitle;
+
+  /// No description provided for @techniqueBoxSubtitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Техніка Navy SEAL для концентрації'**
+  String get techniqueBoxSubtitle;
+
+  /// No description provided for @techniqueTriangleTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Трикутне дихання'**
+  String get techniqueTriangleTitle;
+
+  /// No description provided for @techniqueTriangleSubtitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Загострює ментальну ясність'**
+  String get techniqueTriangleSubtitle;
+
+  /// No description provided for @techniqueMemoryTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Підсилення пам\'яті'**
+  String get techniqueMemoryTitle;
+
+  /// No description provided for @techniqueMemorySubtitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Покращує когнітивне утримання'**
+  String get techniqueMemorySubtitle;
+
+  /// No description provided for @techniqueAlphaTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Альфа-потік'**
+  String get techniqueAlphaTitle;
+
+  /// No description provided for @techniqueAlphaSubtitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Увійти в стан потоку'**
+  String get techniqueAlphaSubtitle;
+
+  /// No description provided for @techniqueDeepSleepTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Глибокий сон'**
+  String get techniqueDeepSleepTitle;
+
+  /// No description provided for @techniqueDeepSleepSubtitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Уповільнення на ніч'**
+  String get techniqueDeepSleepSubtitle;
+
+  /// No description provided for @techniqueLunarTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Місячний ритм'**
+  String get techniqueLunarTitle;
+
+  /// No description provided for @techniqueLunarSubtitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Охолодження та заспокоєння'**
+  String get techniqueLunarSubtitle;
+
+  /// No description provided for @techniqueDeltaTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Дельта-хвиля'**
+  String get techniqueDeltaTitle;
+
+  /// No description provided for @techniqueDeltaSubtitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Підготовка до REM-сну'**
+  String get techniqueDeltaSubtitle;
+
+  /// No description provided for @techniqueMuscleTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Розслаблення м\'язів'**
+  String get techniqueMuscleTitle;
+
+  /// No description provided for @techniqueMuscleSubtitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Зняття фізичної напруги'**
+  String get techniqueMuscleSubtitle;
+
+  /// No description provided for @techniqueFireTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Дихання вогню'**
+  String get techniqueFireTitle;
+
+  /// No description provided for @techniqueFireSubtitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Швидкі енергетичні вдихи'**
+  String get techniqueFireSubtitle;
+
+  /// No description provided for @techniqueBellowsTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Дихання міхів'**
+  String get techniqueBellowsTitle;
+
+  /// No description provided for @techniqueBellowsSubtitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Оживляє почуття'**
+  String get techniqueBellowsSubtitle;
+
+  /// No description provided for @techniqueTummoTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Туммо-лайт'**
+  String get techniqueTummoTitle;
+
+  /// No description provided for @techniqueTummoSubtitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Генерує внутрішнє тепло'**
+  String get techniqueTummoSubtitle;
+
+  /// No description provided for @techniqueWakeTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Ранковий дзвінок'**
+  String get techniqueWakeTitle;
+
+  /// No description provided for @techniqueWakeSubtitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Замінює ранкову каву'**
+  String get techniqueWakeSubtitle;
+
+  /// No description provided for @modeRelaxation.
+  ///
+  /// In uk, this message translates to:
+  /// **'РЕЛАКСАЦІЯ'**
+  String get modeRelaxation;
+
+  /// No description provided for @modeBalance.
+  ///
+  /// In uk, this message translates to:
+  /// **'БАЛАНС'**
+  String get modeBalance;
+
+  /// No description provided for @modeZen.
+  ///
+  /// In uk, this message translates to:
+  /// **'ДЗЕН'**
+  String get modeZen;
+
+  /// No description provided for @modeCalm.
+  ///
+  /// In uk, this message translates to:
+  /// **'СПОКІЙ'**
+  String get modeCalm;
+
+  /// No description provided for @modeTactical.
+  ///
+  /// In uk, this message translates to:
+  /// **'ТАКТИЧНИЙ'**
+  String get modeTactical;
+
+  /// No description provided for @modeSharpen.
+  ///
+  /// In uk, this message translates to:
+  /// **'ЗАГОСТРЕННЯ'**
+  String get modeSharpen;
+
+  /// No description provided for @modeMind.
+  ///
+  /// In uk, this message translates to:
+  /// **'РОЗУМ'**
+  String get modeMind;
+
+  /// No description provided for @modeFlow.
+  ///
+  /// In uk, this message translates to:
+  /// **'ПОТІК'**
+  String get modeFlow;
+
+  /// No description provided for @modeNight.
+  ///
+  /// In uk, this message translates to:
+  /// **'НІЧ'**
+  String get modeNight;
+
+  /// No description provided for @modeMoon.
+  ///
+  /// In uk, this message translates to:
+  /// **'МІСЯЦЬ'**
+  String get modeMoon;
+
+  /// No description provided for @modeDelta.
+  ///
+  /// In uk, this message translates to:
+  /// **'ДЕЛЬТА'**
+  String get modeDelta;
+
+  /// No description provided for @modeRelease.
+  ///
+  /// In uk, this message translates to:
+  /// **'ЗВІЛЬНЕННЯ'**
+  String get modeRelease;
+
+  /// No description provided for @modeFire.
+  ///
+  /// In uk, this message translates to:
+  /// **'ВОГОНЬ'**
+  String get modeFire;
+
+  /// No description provided for @modeBoost.
+  ///
+  /// In uk, this message translates to:
+  /// **'ПІДСИЛЕННЯ'**
+  String get modeBoost;
+
+  /// No description provided for @modeHeat.
+  ///
+  /// In uk, this message translates to:
+  /// **'ТЕПЛО'**
+  String get modeHeat;
+
+  /// No description provided for @modeWake.
+  ///
+  /// In uk, this message translates to:
+  /// **'ПРОБУДЖЕННЯ'**
+  String get modeWake;
 }
 
 class _AppLocalizationsDelegate
