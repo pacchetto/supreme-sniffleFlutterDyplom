@@ -323,181 +323,181 @@ abstract class AppLocalizations {
   /// No description provided for @welcomeBackLabel.
   ///
   /// In uk, this message translates to:
-  /// **'WELCOME BACK'**
+  /// **'З ПОВЕРНЕННЯМ'**
   String get welcomeBackLabel;
 
   /// No description provided for @goodEvening.
   ///
   /// In uk, this message translates to:
-  /// **'Good Evening'**
+  /// **'Добрий вечір'**
   String get goodEvening;
 
   /// No description provided for @notificationsTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Notifications'**
+  /// **'Сповіщення'**
   String get notificationsTitle;
 
   /// No description provided for @newSession.
   ///
   /// In uk, this message translates to:
-  /// **'New Session'**
+  /// **'Нова сесія'**
   String get newSession;
 
   /// No description provided for @newSessionDesc.
   ///
   /// In uk, this message translates to:
-  /// **'Try the new \'Dream Weaver\' for better sleep'**
+  /// **'Спробуй нову техніку \'Ткач снів\' для кращого сну'**
   String get newSessionDesc;
 
   /// No description provided for @goalReached.
   ///
   /// In uk, this message translates to:
-  /// **'Goal Reached'**
+  /// **'Ціль досягнута'**
   String get goalReached;
 
   /// No description provided for @goalReachedDesc.
   ///
   /// In uk, this message translates to:
-  /// **'You\'ve completed 3 days streak!'**
+  /// **'Ти завершив 3-денну серію!'**
   String get goalReachedDesc;
 
   /// No description provided for @categoryAll.
   ///
   /// In uk, this message translates to:
-  /// **'All'**
+  /// **'Усі'**
   String get categoryAll;
 
   /// No description provided for @categoryChill.
   ///
   /// In uk, this message translates to:
-  /// **'Chill'**
+  /// **'Релакс'**
   String get categoryChill;
 
   /// No description provided for @categoryFocus.
   ///
   /// In uk, this message translates to:
-  /// **'Focus'**
+  /// **'Фокус'**
   String get categoryFocus;
 
   /// No description provided for @categorySleep.
   ///
   /// In uk, this message translates to:
-  /// **'Sleep'**
+  /// **'Сон'**
   String get categorySleep;
 
   /// No description provided for @categoryEnergize.
   ///
   /// In uk, this message translates to:
-  /// **'Energize'**
+  /// **'Енергія'**
   String get categoryEnergize;
 
   /// No description provided for @liveGeneration.
   ///
   /// In uk, this message translates to:
-  /// **'LIVE GENERATION'**
+  /// **'ЖИВА ГЕНЕРАЦІЯ'**
   String get liveGeneration;
 
   /// No description provided for @standardFlow.
   ///
   /// In uk, this message translates to:
-  /// **'STANDARD FLOW'**
+  /// **'СТАНДАРТНИЙ ПОТІК'**
   String get standardFlow;
 
   /// No description provided for @dailyGenerativeFlow.
   ///
   /// In uk, this message translates to:
-  /// **'Daily Generative Flow'**
+  /// **'Щоденний генеративний потік'**
   String get dailyGenerativeFlow;
 
   /// No description provided for @startSession.
   ///
   /// In uk, this message translates to:
-  /// **'Start Session'**
+  /// **'Почати сесію'**
   String get startSession;
 
   /// No description provided for @breathingTechniques.
   ///
   /// In uk, this message translates to:
-  /// **'Breathing Techniques'**
+  /// **'Техніки дихання'**
   String get breathingTechniques;
 
   /// No description provided for @viewAll.
   ///
   /// In uk, this message translates to:
-  /// **'VIEW ALL'**
+  /// **'ДИВИТИСЬ ВСІ'**
   String get viewAll;
 
   /// No description provided for @meditated.
   ///
   /// In uk, this message translates to:
-  /// **'MEDITATED'**
+  /// **'МЕДИТОВАНО'**
   String get meditated;
 
   /// No description provided for @dayStreak.
   ///
   /// In uk, this message translates to:
-  /// **'DAY STREAK'**
+  /// **'ДНІВ ПІДРЯД'**
   String get dayStreak;
 
   /// No description provided for @clarity.
   ///
   /// In uk, this message translates to:
-  /// **'CLARITY'**
+  /// **'ЯСНІСТЬ'**
   String get clarity;
 
   /// No description provided for @focusLevel.
   ///
   /// In uk, this message translates to:
-  /// **'Focus Level'**
+  /// **'Рівень фокусу'**
   String get focusLevel;
 
   /// No description provided for @period7d.
   ///
   /// In uk, this message translates to:
-  /// **'7D'**
+  /// **'7Д'**
   String get period7d;
 
   /// No description provided for @period1m.
   ///
   /// In uk, this message translates to:
-  /// **'1M'**
+  /// **'1М'**
   String get period1m;
 
   /// No description provided for @periodAll.
   ///
   /// In uk, this message translates to:
-  /// **'ALL'**
+  /// **'ВСІ'**
   String get periodAll;
 
   /// No description provided for @systemPreferences.
   ///
   /// In uk, this message translates to:
-  /// **'SYSTEM PREFERENCES'**
+  /// **'СИСТЕМНІ НАЛАШТУВАННЯ'**
   String get systemPreferences;
 
   /// No description provided for @bioFeedbackSync.
   ///
   /// In uk, this message translates to:
-  /// **'Bio-Feedback Sync'**
+  /// **'Біо-синхронізація'**
   String get bioFeedbackSync;
 
   /// No description provided for @darkImmersion.
   ///
   /// In uk, this message translates to:
-  /// **'Dark Immersion'**
+  /// **'Темне занурення'**
   String get darkImmersion;
 
   /// No description provided for @zenNotifications.
   ///
   /// In uk, this message translates to:
-  /// **'Zen Notifications'**
+  /// **'Дзен-сповіщення'**
   String get zenNotifications;
 
   /// No description provided for @settingsAndPrivacy.
   ///
   /// In uk, this message translates to:
-  /// **'Settings & Privacy'**
+  /// **'Налаштування та конфіденційність'**
   String get settingsAndPrivacy;
 
   /// No description provided for @version.
@@ -1171,6 +1171,24 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'ПРОБУДЖЕННЯ'**
   String get modeWake;
+
+  /// No description provided for @bioFeedbackSyncProfile.
+  ///
+  /// In uk, this message translates to:
+  /// **'Bio-Feedback Sync'**
+  String get bioFeedbackSyncProfile;
+
+  /// No description provided for @darkImmersionProfile.
+  ///
+  /// In uk, this message translates to:
+  /// **'Dark Immersion'**
+  String get darkImmersionProfile;
+
+  /// No description provided for @zenNotificationsProfile.
+  ///
+  /// In uk, this message translates to:
+  /// **'Zen Notifications'**
+  String get zenNotificationsProfile;
 }
 
 class _AppLocalizationsDelegate

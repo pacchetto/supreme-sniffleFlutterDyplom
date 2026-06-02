@@ -666,7 +666,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
           _buildSettingsSwitch(
             icon: Icons.bar_chart_rounded,
-            title: "Bio-Feedback Sync",
+            title: l10n.bioFeedbackSync,
             value: isBioSync,
             onChanged: (val) {
               ref.read(bioSyncProvider.notifier).toggle(val);
@@ -675,7 +675,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
           _buildSettingsSwitch(
             icon: Icons.dark_mode_outlined,
-            title: "Dark Immersion",
+            title: l10n.darkImmersion,
             value: isDarkImmersion,
             onChanged: (val) {
               ref.read(darkImmersionProvider.notifier).toggle(val);
@@ -684,7 +684,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
           _buildSettingsSwitch(
             icon: Icons.notifications_off_outlined,
-            title: "Zen Notifications",
+            title: l10n.zenNotifications,
             value: _zenNotifications,
             onChanged: (val) {
               setState(() => _zenNotifications = val);
@@ -721,9 +721,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     size: 20,
                   ),
                   const SizedBox(width: 10),
-                  const Text(
-                    "Settings & Privacy",
-                    style: TextStyle(
+                  Text(
+                    l10n.settingsAndPrivacy,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,

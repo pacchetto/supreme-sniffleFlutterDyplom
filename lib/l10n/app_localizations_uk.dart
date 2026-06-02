@@ -131,94 +131,95 @@ class AppLocalizationsUk extends AppLocalizations {
   }
 
   @override
-  String get welcomeBackLabel => 'WELCOME BACK';
+  String get welcomeBackLabel => 'З ПОВЕРНЕННЯМ';
 
   @override
-  String get goodEvening => 'Good Evening';
+  String get goodEvening => 'Добрий вечір';
 
   @override
-  String get notificationsTitle => 'Notifications';
+  String get notificationsTitle => 'Сповіщення';
 
   @override
-  String get newSession => 'New Session';
+  String get newSession => 'Нова сесія';
 
   @override
-  String get newSessionDesc => 'Try the new \'Dream Weaver\' for better sleep';
+  String get newSessionDesc =>
+      'Спробуй нову техніку \'Ткач снів\' для кращого сну';
 
   @override
-  String get goalReached => 'Goal Reached';
+  String get goalReached => 'Ціль досягнута';
 
   @override
-  String get goalReachedDesc => 'You\'ve completed 3 days streak!';
+  String get goalReachedDesc => 'Ти завершив 3-денну серію!';
 
   @override
-  String get categoryAll => 'All';
+  String get categoryAll => 'Усі';
 
   @override
-  String get categoryChill => 'Chill';
+  String get categoryChill => 'Релакс';
 
   @override
-  String get categoryFocus => 'Focus';
+  String get categoryFocus => 'Фокус';
 
   @override
-  String get categorySleep => 'Sleep';
+  String get categorySleep => 'Сон';
 
   @override
-  String get categoryEnergize => 'Energize';
+  String get categoryEnergize => 'Енергія';
 
   @override
-  String get liveGeneration => 'LIVE GENERATION';
+  String get liveGeneration => 'ЖИВА ГЕНЕРАЦІЯ';
 
   @override
-  String get standardFlow => 'STANDARD FLOW';
+  String get standardFlow => 'СТАНДАРТНИЙ ПОТІК';
 
   @override
-  String get dailyGenerativeFlow => 'Daily Generative Flow';
+  String get dailyGenerativeFlow => 'Щоденний генеративний потік';
 
   @override
-  String get startSession => 'Start Session';
+  String get startSession => 'Почати сесію';
 
   @override
-  String get breathingTechniques => 'Breathing Techniques';
+  String get breathingTechniques => 'Техніки дихання';
 
   @override
-  String get viewAll => 'VIEW ALL';
+  String get viewAll => 'ДИВИТИСЬ ВСІ';
 
   @override
-  String get meditated => 'MEDITATED';
+  String get meditated => 'МЕДИТОВАНО';
 
   @override
-  String get dayStreak => 'DAY STREAK';
+  String get dayStreak => 'ДНІВ ПІДРЯД';
 
   @override
-  String get clarity => 'CLARITY';
+  String get clarity => 'ЯСНІСТЬ';
 
   @override
-  String get focusLevel => 'Focus Level';
+  String get focusLevel => 'Рівень фокусу';
 
   @override
-  String get period7d => '7D';
+  String get period7d => '7Д';
 
   @override
-  String get period1m => '1M';
+  String get period1m => '1М';
 
   @override
-  String get periodAll => 'ALL';
+  String get periodAll => 'ВСІ';
 
   @override
-  String get systemPreferences => 'SYSTEM PREFERENCES';
+  String get systemPreferences => 'СИСТЕМНІ НАЛАШТУВАННЯ';
 
   @override
-  String get bioFeedbackSync => 'Bio-Feedback Sync';
+  String get bioFeedbackSync => 'Біо-синхронізація';
 
   @override
-  String get darkImmersion => 'Dark Immersion';
+  String get darkImmersion => 'Темне занурення';
 
   @override
-  String get zenNotifications => 'Zen Notifications';
+  String get zenNotifications => 'Дзен-сповіщення';
 
   @override
-  String get settingsAndPrivacy => 'Settings & Privacy';
+  String get settingsAndPrivacy => 'Налаштування та конфіденційність';
 
   @override
   String get version => 'v1.0.0-build.42';
@@ -570,4 +571,13 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get modeWake => 'ПРОБУДЖЕННЯ';
+
+  @override
+  String get bioFeedbackSyncProfile => 'Bio-Feedback Sync';
+
+  @override
+  String get darkImmersionProfile => 'Dark Immersion';
+
+  @override
+  String get zenNotificationsProfile => 'Zen Notifications';
 }

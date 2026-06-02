@@ -571,4 +571,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modeWake => 'WAKE';
+
+  @override
+  String get bioFeedbackSyncProfile => 'Bio-Feedback Sync';
+
+  @override
+  String get darkImmersionProfile => 'Dark Immersion';
+
+  @override
+  String get zenNotificationsProfile => 'Zen Notifications';
 }
