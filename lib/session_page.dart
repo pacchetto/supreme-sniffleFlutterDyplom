@@ -207,16 +207,17 @@ class _SessionPageState extends ConsumerState<SessionPage>
       }
 
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Row(
+            content: Row(
               children: [
-                Icon(Icons.star_rounded, color: Colors.amber, size: 20),
-                SizedBox(width: 12),
+                const Icon(Icons.star_rounded, color: Colors.amber, size: 20),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    "SESSION COMPLETE! PROGRESS SAVED 🎉",
-                    style: TextStyle(
+                    l10n.sessionCompleteMessage,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                     ),

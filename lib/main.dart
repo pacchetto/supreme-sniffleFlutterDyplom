@@ -1,5 +1,6 @@
 // lib/main.dart
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,19 +9,26 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'l10n/app_localizations.dart';
 import 'main_screen.dart';
 import 'auth_page.dart';
+import 'web_main_screen.dart';
+import 'web_auth_page.dart';
+import 'web_splash_page.dart';
 import 'dart:async';
 import 'locale_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // 1. Завантажуємо змінні середовища (ЗБЕРЕЖЕНО)
-  await dotenv.load(fileName: ".env");
 
-  // 2. Ініціалізуємо підключення до бази даних Supabase (ЗБЕРЕЖЕНО)
-  await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL'] ?? '',
-    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
-  );
+  // Supabase initialization ONLY for mobile (not for web)
+  if (!kIsWeb) {
+    // 1. Завантажуємо змінні середовища (ТІЛЬКИ ДЛЯ МОБІЛЬНИХ)
+    await dotenv.load(fileName: ".env");
+
+    // 2. Ініціалізуємо підключення до бази даних Supabase (ТІЛЬКИ ДЛЯ МОБІЛЬНИХ)
+    await Supabase.initialize(
+      url: dotenv.env['SUPABASE_URL'] ?? '',
+      anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
+    );
+  }
 
   runApp(const ProviderScope(child: AetheriaApp()));
 }
@@ -80,8 +88,8 @@ class AetheriaApp extends ConsumerWidget {
           secondary: Color(0xFF7000FF), // Deep Purple
         ),
       ),
-      // Замість статичного MainScreen ставимо динамічний шлюз перевірки авторизації
-      home: const AuthGate(),
+      // Web: показуємо splash, Mobile: показуємо AuthGate
+      home: kIsWeb ? const WebSplashPage() : const AuthGate(),
     );
   }
 }
@@ -169,10 +177,11 @@ class _AuthGateState extends State<AuthGate> {
       );
     }
 
+    // Platform-specific routing: Web vs Mobile
     if (_currentSession != null) {
-      return const MainScreen();
+      return kIsWeb ? const WebMainScreen() : const MainScreen();
     }
 
-    return const AuthPage();
+    return kIsWeb ? const WebAuthPage() : const AuthPage();
   }
 }

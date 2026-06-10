@@ -42,7 +42,14 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
   }
 
   // Твій API ключ OpenAI
-  final String openAiKey = dotenv.env['GROQ_API_KEY'] ?? "";
+  String get openAiKey {
+    try {
+      return dotenv.env['GROQ_API_KEY'] ?? "";
+    } catch (e) {
+      // For web version without .env file
+      return "";
+    }
+  }
 
   // 1. Функція відправки повідомлення
   Future<void> _sendMessage() async {
@@ -209,11 +216,7 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-            onPressed: () {
-              if (Navigator.canPop(context)) {
-                Navigator.pop(context);
-              }
-            },
+            onPressed: () => Navigator.of(context).pop(),
           ),
         ),
         actions: [
