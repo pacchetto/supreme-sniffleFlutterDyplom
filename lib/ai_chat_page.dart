@@ -200,7 +200,7 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
     final primaryColor = theme.colorScheme.primary;
     final l10n = AppLocalizations.of(context)!;
 
-    // СИНХРОНІЗАЦІЯ ДИЗАЙНУ: Слухаємо той самий тумблер з налаштувань!
+    // СИНХРОНІЗАЦІЯ ДИЗАЙНУ: Слухаємо той самий тумблер з налаштувань
     final isDarkImmersion = ref.watch(darkImmersionProvider);
 
     // Визначаємо колір фону точно так само, як на сторінці налаштувань
@@ -216,7 +216,9 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              Navigator.pop(context);
+            },
           ),
         ),
         actions: [
