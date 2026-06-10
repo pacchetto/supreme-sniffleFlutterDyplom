@@ -10,7 +10,6 @@ import 'l10n/app_localizations.dart';
 import 'main_screen.dart';
 import 'auth_page.dart';
 import 'web_main_screen.dart';
-import 'web_auth_page.dart';
 import 'web_splash_page.dart';
 import 'dart:async';
 import 'locale_provider.dart';
@@ -182,6 +181,6 @@ class _AuthGateState extends State<AuthGate> {
       return kIsWeb ? const WebMainScreen() : const MainScreen();
     }
 
-    return kIsWeb ? const WebAuthPage() : const AuthPage();
+    return kIsWeb ? const WebSplashPage() : const AuthPage();
   }
 }

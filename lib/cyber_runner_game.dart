@@ -32,7 +32,7 @@ class _CyberRunnerGameState extends State<CyberRunnerGame> {
   final List<Map<String, dynamic>> _obstacles = [];
   final double _obstacleSpeed = 0.035;
   final double _minObstacleDistance =
-      1.2; // Мінімальна відстань між перешкодами (збільшено)
+      1.5; // Мінімальна відстань між перешкодами
   final Random _random = Random();
 
   @override
