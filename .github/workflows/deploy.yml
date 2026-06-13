@@ -21,6 +21,9 @@ jobs:
       - name: Build web
         run: flutter build web --release
 
+      - name: Remove env.json before deploy
+        run: rm -f build/web/env.json
+
       - name: Deploy to Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
