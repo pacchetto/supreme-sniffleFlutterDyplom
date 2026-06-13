@@ -56,133 +56,135 @@ class _WebSplashPageState extends State<WebSplashPage>
             ),
           ),
           child: SafeArea(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Spacer(flex: 2),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 40),
 
-                // ANIMATED CIRCLES
-                SizedBox(
-                  width: 280,
-                  height: 280,
-                  child: AnimatedBuilder(
-                    animation: _controller,
-                    builder: (context, child) {
-                      return CustomPaint(
-                        painter: ConcentricCirclesPainter(
-                          progress: _controller.value,
-                        ),
-                      );
-                    },
+                  // ANIMATED CIRCLES
+                  SizedBox(
+                    width: 280,
+                    height: 280,
+                    child: AnimatedBuilder(
+                      animation: _controller,
+                      builder: (context, child) {
+                        return CustomPaint(
+                          painter: ConcentricCirclesPainter(
+                            progress: _controller.value,
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 60),
+                  const SizedBox(height: 60),
 
-                // APP TITLE
-                const Text(
-                  'Aetheria\nGraph',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 48,
-                    fontWeight: FontWeight.w300,
-                    height: 1.2,
-                    letterSpacing: 2,
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // SUBTITLE
-                Text(
-                  'CYBERPUNK ZEN',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: const Color(0xFFFF007F).withOpacity(0.8),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 4,
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                // DESCRIPTION
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
-                  child: Text(
-                    'Find peace in the noise.\nBreathwork for the digital age.',
+                  // APP TITLE
+                  const Text(
+                    'Aetheria\nGraph',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white,
+                      fontSize: 48,
+                      fontWeight: FontWeight.w300,
+                      height: 1.2,
+                      letterSpacing: 2,
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // SUBTITLE
+                  Text(
+                    'CYBERPUNK ZEN',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: const Color(0xFFFF007F).withOpacity(0.8),
                       fontSize: 14,
-                      height: 1.6,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 4,
                     ),
                   ),
-                ),
 
-                const Spacer(flex: 2),
+                  const SizedBox(height: 8),
 
-                // GET STARTED BUTTON
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
-                  child: GestureDetector(
-                    onTap: _navigateToApp,
-                    child: Container(
-                      width: double.infinity,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFF007F), Color(0xFFFF0055)],
-                        ),
-                        borderRadius: BorderRadius.circular(32),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFFF007F).withOpacity(0.5),
-                            blurRadius: 30,
-                            spreadRadius: 2,
-                          ),
-                        ],
+                  // DESCRIPTION
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40),
+                    child: Text(
+                      'Find peace in the noise.\nBreathwork for the digital age.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.5),
+                        fontSize: 14,
+                        height: 1.6,
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'GET STARTED',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 2,
+                    ),
+                  ),
+
+                  const SizedBox(height: 60),
+
+                  // GET STARTED BUTTON
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: GestureDetector(
+                      onTap: _navigateToApp,
+                      child: Container(
+                        width: double.infinity,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFF007F), Color(0xFFFF0055)],
+                          ),
+                          borderRadius: BorderRadius.circular(32),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFF007F).withOpacity(0.5),
+                              blurRadius: 30,
+                              spreadRadius: 2,
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Icon(
-                            Icons.arrow_forward_rounded,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ],
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'GET STARTED',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 2,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Icon(
+                              Icons.arrow_forward_rounded,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
 
-                const SizedBox(height: 40),
+                  const SizedBox(height: 40),
 
-                // VERSION INFO
-                Text(
-                  'Web Demo v1.0.0',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.2),
-                    fontSize: 11,
-                    letterSpacing: 1,
+                  // VERSION INFO
+                  Text(
+                    'Web Demo v1.0.0',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.2),
+                      fontSize: 11,
+                      letterSpacing: 1,
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 24),
-              ],
+                  const SizedBox(height: 24),
+                ],
+              ),
             ),
           ),
         ),

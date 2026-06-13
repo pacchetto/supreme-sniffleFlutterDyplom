@@ -2,13 +2,20 @@
 // WEB AI CHAT PAGE: Optimized for desktop/large screens
 
 import 'dart:convert';
+import 'dart:js_interop_unsafe';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:aetheria_graph_app/l10n/app_localizations.dart';
 import 'package:aetheria_graph_app/profile_page.dart';
+
+// For web: import JS interop to access window.flutterConfig
+import 'dart:js_interop';
+
+@JS('window.flutterConfig')
+external Object? get _flutterConfig;
 
 class ChatMessage {
   final String text;
@@ -40,9 +47,22 @@ class _WebAiChatPageState extends ConsumerState<WebAiChatPage> {
   }
 
   String get openAiKey {
+    if (!kIsWeb) {
+      return ""; // Not available on web through dotenv
+    }
+
     try {
-      return dotenv.env['GROQ_API_KEY'] ?? "";
+      // Try to get from window.flutterConfig (set in index.html)
+      final config = _flutterConfig;
+      if (config != null) {
+        final jsObj = config as JSObject;
+        return (jsObj.getProperty('groqApiKey' as JSString) as JSString?)
+                ?.toDart ??
+            "";
+      }
+      return "";
     } catch (e) {
+      print("⚠️ Cannot read API key from window.flutterConfig: $e");
       return "";
     }
   }
@@ -127,6 +147,10 @@ class _WebAiChatPageState extends ConsumerState<WebAiChatPage> {
   }
 
   Future<String> _fetchOpenAiResponse() async {
+    if (openAiKey.isEmpty) {
+      return "⚠️ API Key not configured in web configuration.";
+    }
+
     try {
       List<Map<String, String>> apiMessages = [
         {
@@ -164,6 +188,8 @@ class _WebAiChatPageState extends ConsumerState<WebAiChatPage> {
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
         return data['choices'][0]['message']['content'];
+      } else if (response.statusCode == 401) {
+        return "❌ Invalid API Key. Check the key in settings (🔑 icon).";
       } else {
         return "Системи перевантажені. (Помилка API: ${response.statusCode})";
       }
@@ -241,10 +267,7 @@ class _WebAiChatPageState extends ConsumerState<WebAiChatPage> {
                 const SizedBox(width: 6),
                 Text(
                   l10n.online,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.white54,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.white54),
                 ),
               ],
             ),
@@ -364,10 +387,7 @@ class _WebAiChatPageState extends ConsumerState<WebAiChatPage> {
       alignment: isAi ? Alignment.centerLeft : Alignment.centerRight,
       child: Container(
         margin: const EdgeInsets.only(bottom: 20),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 24,
-          vertical: 16,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         constraints: const BoxConstraints(maxWidth: 600),
         decoration: BoxDecoration(
           color: isAi
@@ -403,10 +423,7 @@ class _WebAiChatPageState extends ConsumerState<WebAiChatPage> {
       alignment: Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 20),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 24,
-          vertical: 16,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         decoration: BoxDecoration(
           color: const Color(0xFF151515),
           borderRadius: BorderRadius.circular(24),

@@ -41,6 +41,20 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
+  <script>
+    // Load environment variables from env.json
+    fetch('env.json')
+      .then(response => response.json())
+      .then(data => {
+        window.flutterConfig = {
+          groqApiKey: data.GROQ_API_KEY || '',
+        };
+      })
+      .catch(error => {
+        console.warn('env.json not found, using empty config:', error);
+        window.flutterConfig = { groqApiKey: '' };
+      });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
