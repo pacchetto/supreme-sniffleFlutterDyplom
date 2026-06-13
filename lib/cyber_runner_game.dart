@@ -201,7 +201,7 @@ class _CyberRunnerGameState extends State<CyberRunnerGame> {
                   children: [
                     // Лінія підлоги
                     Positioned(
-                      bottom: 80,
+                      bottom: 137,
                       left: 0,
                       right: 0,
                       child: Container(
