@@ -15,7 +15,7 @@ jobs:
       - uses: subosito/flutter-action@v2
 
       - name: Build web
-        run: flutter build web --release
+        run: flutter build web --release --base-href /supreme-sniffleFlutterDyplom/
 
       - name: Inject API key
         run: |
