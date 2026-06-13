@@ -14,15 +14,12 @@ jobs:
 
       - uses: subosito/flutter-action@v2
 
-      - name: Create env.json
-        run: |
-          echo '{"GROQ_API_KEY": "${{ secrets.GROQ_API_KEY }}"}' > web/env.json
-
       - name: Build web
         run: flutter build web --release
 
-      - name: Remove env.json before deploy
-        run: rm -f build/web/env.json
+      - name: Inject API key
+        run: |
+          sed -i "s/window.groqApiKey = '';/window.groqApiKey = '${{ secrets.GROQ_API_KEY }}';/" build/web/index.html
 
       - name: Deploy to Pages
         uses: peaceiris/actions-gh-pages@v3

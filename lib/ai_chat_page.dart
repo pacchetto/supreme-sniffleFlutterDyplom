@@ -2,8 +2,10 @@
 
 import 'dart:convert';
 import 'dart:ui';
+import 'dart:js' as js;
 import 'package:aetheria_graph_app/profile_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -44,7 +46,13 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
   // Твій API ключ OpenAI
   String get openAiKey {
     try {
-      return dotenv.env['GROQ_API_KEY'] ?? "";
+      if (kIsWeb) {
+        // On web, get API key from window object (injected by build process)
+        return js.context['groqApiKey'] as String? ?? "";
+      } else {
+        // On mobile, get from dotenv
+        return dotenv.env['GROQ_API_KEY'] ?? "";
+      }
     } catch (e) {
       // For web version without .env file
       return "";

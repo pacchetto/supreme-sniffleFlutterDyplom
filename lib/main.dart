@@ -17,8 +17,11 @@ import 'locale_provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Supabase initialization ONLY for mobile (not for web)
-  if (!kIsWeb) {
+  if (kIsWeb) {
+    // On web, initialize window API key from JS
+    await _initWebEnvironment();
+  } else {
+    // Supabase initialization ONLY for mobile (not for web)
     // 1. Завантажуємо змінні середовища (ТІЛЬКИ ДЛЯ МОБІЛЬНИХ)
     await dotenv.load(fileName: ".env");
 
@@ -30,6 +33,11 @@ Future<void> main() async {
   }
 
   runApp(const ProviderScope(child: AetheriaApp()));
+}
+
+Future<void> _initWebEnvironment() async {
+  // This will be called before app starts on web
+  // The window.groqApiKey is injected by the build process
 }
 
 class AetheriaApp extends ConsumerWidget {
