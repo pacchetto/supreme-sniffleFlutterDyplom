@@ -7,8 +7,10 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     permissions:
       contents: write
+
     steps:
       - uses: actions/checkout@v3
 
@@ -16,13 +18,12 @@ jobs:
 
       - name: Create empty env file
         run: touch .env
-        
+
       - name: Build web
         run: flutter build web --release --base-href /supreme-sniffleFlutterDyplom/
 
-      - name: Inject API key
-        run: |
-          sed -i "s/window.groqApiKey = '';/window.groqApiKey = '${{ secrets.GROQ_API_KEY }}';/" build/web/index.html
+      - name: Remove env file from web build
+        run: rm -f build/web/assets/.env
 
       - name: Deploy to Pages
         uses: peaceiris/actions-gh-pages@v3
