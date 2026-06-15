@@ -30,14 +30,27 @@ class _WebSettingsPageState extends ConsumerState<WebSettingsPage> {
   }
 
   void _launchEasterEggGame() {
+    final isDarkImmersion = ref.read(darkImmersionProvider);
+    final Color gameBackground = isDarkImmersion
+        ? const Color(0xFF000000)
+        : const Color(0xFF0D0D0D);
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CyberRunnerGame(
-          onGameFinished: (score) {
-            // Just close the game, no score saving in web version
-            Navigator.of(context).pop();
-          },
+        builder: (context) => Scaffold(
+          backgroundColor: gameBackground,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Colors.white70),
+          ),
+          body: CyberRunnerGame(
+            onGameFinished: (score) {
+              // Just close the game, no score saving in web version
+              Navigator.of(context).pop();
+            },
+          ),
         ),
       ),
     );
@@ -204,47 +217,50 @@ class _WebSettingsPageState extends ConsumerState<WebSettingsPage> {
   ) {
     final isSelected = currentLocale.languageCode == locale.languageCode;
 
-    return ListTile(
-      onTap: () {
-        ref.read(localeProvider.notifier).setLocale(locale);
-      },
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFFFF007F).withOpacity(0.1)
-              : Colors.white.withOpacity(0.03),
-          shape: BoxShape.circle,
-          border: Border.all(
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        onTap: () {
+          ref.read(localeProvider.notifier).setLocale(locale);
+        },
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
             color: isSelected
-                ? const Color(0xFFFF007F)
-                : Colors.white.withOpacity(0.1),
-            width: 2,
+                ? const Color(0xFFFF007F).withOpacity(0.1)
+                : Colors.white.withOpacity(0.03),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFFFF007F)
+                  : Colors.white.withOpacity(0.1),
+              width: 2,
+            ),
           ),
-        ),
-        child: Center(
-          child: Text(
-            code,
-            style: TextStyle(
-              color: isSelected ? const Color(0xFFFF007F) : Colors.white60,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
+          child: Center(
+            child: Text(
+              code,
+              style: TextStyle(
+                color: isSelected ? const Color(0xFFFF007F) : Colors.white60,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ),
-      ),
-      title: Text(
-        name,
-        style: TextStyle(
-          color: isSelected ? Colors.white : Colors.white70,
-          fontSize: 15,
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        title: Text(
+          name,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.white70,
+            fontSize: 15,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          ),
         ),
+        trailing: isSelected
+            ? const Icon(Icons.check_circle, color: Color(0xFFFF007F), size: 24)
+            : null,
       ),
-      trailing: isSelected
-          ? const Icon(Icons.check_circle, color: Color(0xFFFF007F), size: 24)
-          : null,
     );
   }
 

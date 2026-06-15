@@ -1,11 +1,57 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'auth_repository.dart';
 
 class SupabaseRepository {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  /// Дефолтні дані для гостьового (локального) профілю.
+  /// Не зберігаються в БД — повертаються лише для відображення.
+  static Map<String, dynamic> get guestDefaultData => {
+    'username': 'Guest',
+    'title': 'CYBER MONK',
+    'xp': 0,
+    'bioSync': true,
+    'darkImmersion': true,
+    'zenNotifications': false,
+    'avatar_url': null,
+    'day_streak': 0,
+    'meditation_minutes': 0,
+    'clarity_level': 0,
+    'focusData': {
+      'MON': 40.0,
+      'TUE': 35.0,
+      'wed': 60.0,
+      'THU': 72.0,
+      'FRI': 78.0,
+      'SAT': 50.0,
+      'SUN': 90.0,
+    },
+  };
+
+  // Ленива ініціалізація - отримуємо клієнт тільки коли потрібно
+  SupabaseClient get _supabase {
+    try {
+      return Supabase.instance.client;
+    } catch (e) {
+      if (kDebugMode) debugPrint("⚠️ Supabase not initialized: $e");
+      rethrow;
+    }
+  }
+
+  // Перевірка, чи Supabase ініціалізований
+  bool get isSupabaseInitialized {
+    try {
+      Supabase.instance.client;
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
 
   /// Повертає ID поточної сесії користувача. Якщо не авторизований — тестовий UUID.
   String get _currentUserId {
+    if (!isSupabaseInitialized) {
+      return '00000000-0000-0000-0000-000000000000';
+    }
     final sessionUserId = _supabase.auth.currentUser?.id;
     if (sessionUserId != null) return sessionUserId;
     return '00000000-0000-0000-0000-000000000000';
@@ -13,6 +59,24 @@ class SupabaseRepository {
 
   // 1. ЗАВАНТАЖЕННЯ ДАНИХ (ПРОФІЛЬ + ГРАФІК + ПРОГРЕС ЗА СЬОГОДНІ)
   Future<Map<String, dynamic>> loadUserData() async {
+    // ГОСТЬОВИЙ РЕЖИМ: повертаємо локальні дефолтні дані без запитів до БД
+    if (await AuthRepository.isGuestMode()) {
+      if (kDebugMode) {
+        debugPrint("👤 Гостьовий режим: повертаємо локальні дані (без БД)");
+      }
+      return guestDefaultData;
+    }
+
+    // Якщо немає валідної авторизованої сесії (наприклад, у момент переходу
+    // між акаунтами / виходу) — повертаємо безпечні дефолтні дані замість
+    // запиту до БД, який впав би через RLS і викликав екран помилки.
+    if (!isSupabaseInitialized || _supabase.auth.currentUser == null) {
+      if (kDebugMode) {
+        debugPrint("⚠️ Немає активної сесії — повертаємо дефолтні дані");
+      }
+      return guestDefaultData;
+    }
+
     final userId = _currentUserId;
     final today = DateTime.now().toIso8601String().split('T').first;
 
@@ -60,7 +124,6 @@ class SupabaseRepository {
       return {
         'username': profileResponse['username'] ?? 'Alex V.',
         'title': profileResponse['title'] ?? 'CYBER MONK',
-        'level': profileResponse['level'] ?? 12,
         'xp': profileResponse['xp'] ?? 0,
         'bioSync': profileResponse['bio_sync'] ?? true,
         'darkImmersion': profileResponse['dark_immersion'] ?? true,
@@ -76,7 +139,10 @@ class SupabaseRepository {
         debugPrint("Помилка SupabaseRepository (load): $e");
         debugPrint("Стек викликів: $stackTrace");
       }
-      rethrow;
+      // Не "ламаємо" UI помилкою (червоний екран / діалог).
+      // Повертаємо безпечні дефолтні дані; реальні дані підвантажаться
+      // при наступному refresh/invalidate, коли сесія стабілізується.
+      return guestDefaultData;
     }
   }
 
@@ -91,7 +157,6 @@ class SupabaseRepository {
         'id': userId,
         'username': 'Alex V.',
         'title': 'CYBER MONK',
-        'level': 12,
         'xp': 1100,
         'bio_sync': true,
         'dark_immersion': true,
@@ -116,7 +181,6 @@ class SupabaseRepository {
     return {
       'username': 'Alex V.',
       'title': 'CYBER MONK',
-      'level': 12,
       'xp': 1100,
       'bioSync': true,
       'darkImmersion': true,

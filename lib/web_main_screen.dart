@@ -4,7 +4,7 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'dashboard_page.dart';
-import 'ai_chat_page.dart';
+import 'web_ai_chat_page.dart';
 import 'web_settings_page.dart';
 
 class WebMainScreen extends StatefulWidget {
@@ -21,7 +21,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
   // Список екранів (3: Dashboard, AI Chat, Settings)
   final List<Widget> _screens = [
     const DashboardPage(),
-    const AiChatPage(),
+    const WebAiChatPage(),
     const WebSettingsPage(),
   ];
 

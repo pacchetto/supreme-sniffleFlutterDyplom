@@ -1,6 +1,6 @@
 // lib/settings_page.dart
 
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,11 +8,13 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:ui';
+import 'dart:io' show File;
 import 'auth_repository.dart';
 import 'auth_page.dart';
 import 'package:aetheria_graph_app/providers/user_data_provider.dart';
 import 'package:aetheria_graph_app/l10n/app_localizations.dart';
 import 'locale_provider.dart';
+import 'profile_page.dart' show darkImmersionProvider, bioSyncProvider;
 // ==========================================
 // 1. ШАР ДАНИХ ТА БІЗНЕС-ЛОГІКИ (RIVERPOD)
 // ==========================================
@@ -86,8 +88,15 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   Future<void> _loadSettingsFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
 
-    // Завантажуємо дані користувача з Supabase через userDataProvider
-    final userData = await ref.read(userDataProvider.future);
+    // Завантажуємо дані користувача з Supabase через userDataProvider.
+    // Якщо запит впаде (немає мережі / RLS / гостьовий режим) — не ламаємо
+    // вхід, а використовуємо локальні дані з SharedPreferences.
+    Map<String, dynamic> userData = const {};
+    try {
+      userData = await ref.read(userDataProvider.future);
+    } catch (e) {
+      debugPrint("⚠️ Не вдалося завантажити дані профілю для налаштувань: $e");
+    }
 
     state = SettingsState(
       userName:
@@ -119,7 +128,17 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   Future<bool> saveProfileChanges() async {
     state = state.copyWith(isLoading: true);
     final prefs = await SharedPreferences.getInstance();
-    final supabase = Supabase.instance.client;
+
+    // Перевіряємо, чи Supabase ініціалізований
+    SupabaseClient? supabase;
+    try {
+      supabase = Supabase.instance.client;
+    } catch (e) {
+      _lastErrorMessage = "Supabase не ініціалізований: $e";
+      state = state.copyWith(isLoading: false);
+      return false;
+    }
+
     final userId = supabase.auth.currentUser?.id;
 
     if (userId == null) {
@@ -131,7 +150,10 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     String? remoteAvatarUrl;
 
     try {
-      if (state.avatarPath != null && !state.avatarPath!.startsWith('http')) {
+      // Завантаження аватару ТІЛЬКИ на мобільних платформах
+      if (!kIsWeb &&
+          state.avatarPath != null &&
+          !state.avatarPath!.startsWith('http')) {
         final file = File(state.avatarPath!);
         final fileName =
             '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.png';
@@ -202,12 +224,20 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     state = state.copyWith(isDarkImmersion: value);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('dark_immersion', value);
+    // Синхронізуємо з окремим провайдером (сторінка профілю)
+    if (ref.read(darkImmersionProvider) != value) {
+      ref.read(darkImmersionProvider.notifier).toggle(value);
+    }
   }
 
   Future<void> toggleBioSync(bool value) async {
     state = state.copyWith(isBioSync: value);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('bio_sync', value);
+    // Синхронізуємо з окремим провайдером (сторінка профілю)
+    if (ref.read(bioSyncProvider) != value) {
+      ref.read(bioSyncProvider.notifier).toggle(value);
+    }
   }
 
   void toggleDevMode(bool value) {
@@ -230,6 +260,17 @@ class SettingsPage extends ConsumerWidget {
   static int _versionClicks = 0;
 
   Future<void> _changeAvatar(BuildContext context, WidgetRef ref) async {
+    // Функція вибору аватару ТІЛЬКИ для мобільних платформ
+    if (kIsWeb) {
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Вибір аватару недоступний на веб-версії"),
+        ),
+      );
+      return;
+    }
+
     try {
       final picker = ImagePicker();
       final XFile? image = await picker.pickImage(
@@ -376,14 +417,16 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 
-  Future<void> _handleLogout(BuildContext context) async {
+  Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
     try {
       final AuthRepository authRepo = AuthRepository();
+      // signOut() сам очищає локальні дані (ім'я, аватар, налаштування, guest-прапорець)
       await authRepo.signOut();
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('user_name');
-      await prefs.remove('avatar_path');
+      // Скидаємо кешований стан Riverpod, щоб дані попереднього профілю
+      // не "перетікали" в новий сеанс (наприклад, у гостя)
+      ref.invalidate(userDataProvider);
+      ref.invalidate(settingsProvider);
 
       if (context.mounted) {
         Navigator.of(context).pushAndRemoveUntil(
@@ -679,7 +722,8 @@ class SettingsPage extends ConsumerWidget {
                   ),
                   backgroundColor: Colors.redAccent.withOpacity(0.02),
                 ),
-                onPressed: () => _handleLogout(context),
+                onPressed: () => _handleLogout(context, ref),
+
                 icon: const Icon(
                   Icons.logout_rounded,
                   color: Colors.redAccent,

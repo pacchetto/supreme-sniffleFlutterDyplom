@@ -125,7 +125,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             0xFF00E5FF,
           ); // Спокійний бірюзовий неон (якщо BioSync вимкнено)
 
-    // Динамічні категорії з локалізацією
+    // Динамічні категорії з локалізацією (не використовується, але залишена для майбутнього розширення)
+    // ignore: unused_local_variable
     final categories = [
       l10n.categoryAll,
       l10n.categoryChill,

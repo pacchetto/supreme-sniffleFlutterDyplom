@@ -2,7 +2,6 @@
 // WEB AI CHAT PAGE: Optimized for desktop/large screens
 
 import 'dart:convert';
-import 'dart:js_interop_unsafe';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -11,11 +10,12 @@ import 'package:http/http.dart' as http;
 import 'package:aetheria_graph_app/l10n/app_localizations.dart';
 import 'package:aetheria_graph_app/profile_page.dart';
 
-// For web: import JS interop to access window.flutterConfig
+// For web: import JS interop to access the Groq API key injected in index.html
 import 'dart:js_interop';
 
-@JS('window.flutterConfig')
-external Object? get _flutterConfig;
+// Reads `window.groqApiKey` (set in web/index.html) as a Dart String.
+@JS('window.groqApiKey')
+external JSString? get _groqApiKey;
 
 class ChatMessage {
   final String text;
@@ -52,17 +52,10 @@ class _WebAiChatPageState extends ConsumerState<WebAiChatPage> {
     }
 
     try {
-      // Try to get from window.flutterConfig (set in index.html)
-      final config = _flutterConfig;
-      if (config != null) {
-        final jsObj = config as JSObject;
-        return (jsObj.getProperty('groqApiKey' as JSString) as JSString?)
-                ?.toDart ??
-            "";
-      }
-      return "";
+      // Read window.groqApiKey injected in web/index.html
+      return _groqApiKey?.toDart ?? "";
     } catch (e) {
-      print("⚠️ Cannot read API key from window.flutterConfig: $e");
+      debugPrint("⚠️ Cannot read API key from window.groqApiKey: $e");
       return "";
     }
   }
@@ -303,9 +296,13 @@ class _WebAiChatPageState extends ConsumerState<WebAiChatPage> {
               SafeArea(
                 bottom: true,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 24,
+                  // Extra bottom padding so the floating bottom navbar
+                  // (~90px tall) does NOT overlap the text input field.
+                  padding: const EdgeInsets.only(
+                    left: 32,
+                    right: 32,
+                    top: 24,
+                    bottom: 100,
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(28),

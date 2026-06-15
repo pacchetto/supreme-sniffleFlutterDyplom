@@ -162,153 +162,133 @@ class _CyberRunnerGameState extends State<CyberRunnerGame> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          'CYBER RUNNER',
-          style: TextStyle(
-            color: widget.neonPink,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: GestureDetector(
-            onTap: _onGameTap,
-            child: Container(
-              margin: const EdgeInsets.all(20),
-              height: 400,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: const Color(0xFF0D0D0D),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: widget.neonPink.withOpacity(0.2)),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Stack(
-                  children: [
-                    // Лінія підлоги
-                    Positioned(
-                      bottom: 137,
-                      left: 0,
-                      right: 0,
-                      child: Container(
-                        height: 2,
-                        decoration: BoxDecoration(
-                          color: widget.neonPink.withOpacity(0.5),
-                          boxShadow: [
-                            BoxShadow(color: widget.neonPink, blurRadius: 10),
-                          ],
-                        ),
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: GestureDetector(
+          onTap: _onGameTap,
+          child: Container(
+            margin: const EdgeInsets.all(20),
+            height: 400,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0D0D0D),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: widget.neonPink.withOpacity(0.2)),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Stack(
+                children: [
+                  // Лінія підлоги
+                  Positioned(
+                    bottom: 137,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      height: 2,
+                      decoration: BoxDecoration(
+                        color: widget.neonPink.withOpacity(0.5),
+                        boxShadow: [
+                          BoxShadow(color: widget.neonPink, blurRadius: 10),
+                        ],
                       ),
                     ),
-                    // Гравець (Куб)
-                    AnimatedAlign(
-                      duration: const Duration(milliseconds: 0),
-                      alignment: Alignment(-0.6, 0.25 + _playerY),
-                      child: Transform.rotate(
-                        angle: _playerRotation,
-                        child: Container(
-                          width: 25,
-                          height: 25,
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            border: Border.all(color: Colors.white, width: 2),
-                            borderRadius: BorderRadius.circular(4),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.white.withOpacity(0.4),
-                                blurRadius: 8,
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: widget.neonPink,
-                                shape: BoxShape.circle,
-                              ),
+                  ),
+                  // Гравець (Куб)
+                  AnimatedAlign(
+                    duration: const Duration(milliseconds: 0),
+                    alignment: Alignment(-0.6, 0.25 + _playerY),
+                    child: Transform.rotate(
+                      angle: _playerRotation,
+                      child: Container(
+                        width: 25,
+                        height: 25,
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          border: Border.all(color: Colors.white, width: 2),
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.white.withOpacity(0.4),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: widget.neonPink,
+                              shape: BoxShape.circle,
                             ),
                           ),
                         ),
                       ),
                     ),
-                    // Всі перешкоди
-                    ..._obstacles.map((obstacle) {
-                      return AnimatedAlign(
-                        duration: const Duration(milliseconds: 0),
-                        alignment: Alignment(obstacle['x'], 0.25),
-                        child: _buildObstacleWidget(obstacle['type']),
-                      );
-                    }).toList(),
-                    // Екран старту
-                    if (!_gameStarted)
-                      Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.8),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                "⚡ CYBER RUNNER ⚡",
-                                style: TextStyle(
-                                  color: widget.neonPink,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  letterSpacing: 2,
-                                  decoration: TextDecoration.none,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                "TAP TO JUMP",
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                  decoration: TextDecoration.none,
-                                ),
-                              ),
-                            ],
-                          ),
+                  ),
+                  // Всі перешкоди
+                  ..._obstacles.map((obstacle) {
+                    return AnimatedAlign(
+                      duration: const Duration(milliseconds: 0),
+                      alignment: Alignment(obstacle['x'], 0.25),
+                      child: _buildObstacleWidget(obstacle['type']),
+                    );
+                  }),
+                  // Екран старту
+                  if (!_gameStarted)
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
                         ),
-                      ),
-                    // Поточний рахунок / Sync Rate
-                    Positioned(
-                      top: 12,
-                      right: 16,
-                      child: Text(
-                        "SYNC RATE: ${_gameScore ~/ 5}%",
-                        style: TextStyle(
-                          color: widget.neonPink,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          decoration: TextDecoration.none,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              "⚡ CYBER RUNNER ⚡",
+                              style: TextStyle(
+                                color: widget.neonPink,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                letterSpacing: 2,
+                                decoration: TextDecoration.none,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              "TAP TO JUMP",
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                                decoration: TextDecoration.none,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  // Поточний рахунок / Sync Rate
+                  Positioned(
+                    top: 12,
+                    right: 16,
+                    child: Text(
+                      "SYNC RATE: ${_gameScore ~/ 5}%",
+                      style: TextStyle(
+                        color: widget.neonPink,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

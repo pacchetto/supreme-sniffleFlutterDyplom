@@ -1,16 +1,64 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthRepository {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  /// Ключ для зберігання прапорця гостьового режиму
+  static const String guestModeKey = 'is_guest_mode';
+
+  /// Перевіряє, чи активний зараз гостьовий (локальний) режим
+  static Future<bool> isGuestMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(guestModeKey) ?? false;
+  }
+
+  // Ленива ініціалізація - отримуємо клієнт тільки коли потрібно
+  SupabaseClient get _supabase {
+    try {
+      return Supabase.instance.client;
+    } catch (e) {
+      if (kDebugMode) debugPrint("⚠️ Supabase not initialized: $e");
+      rethrow;
+    }
+  }
+
+  // Перевірка, чи Supabase ініціалізований
+  bool get isSupabaseInitialized {
+    try {
+      Supabase.instance.client;
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
 
   // Стрім для відстеження стану авторизації (для автоматичного редиректу)
-  Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
+  Stream<AuthState> get authStateChanges {
+    if (!isSupabaseInitialized) {
+      throw Exception('Supabase is not initialized');
+    }
+    return _supabase.auth.onAuthStateChange;
+  }
 
   // Перевірка, чи користувач зараз авторизований
-  bool get isAuthenticated => _supabase.auth.currentSession != null;
+  bool get isAuthenticated {
+    if (!isSupabaseInitialized) return false;
+    return _supabase.auth.currentSession != null;
+  }
 
-  // 1. АНОНІМНИЙ ВХІД (Швидкий старт)
+  // 1. ГОСТЬОВИЙ ВХІД (Локальний, БЕЗ запису в БД)
+  // Гість працює офлайн з дефолтними даними. Нічого не пишеться в Supabase,
+  // тому гостьові акаунти не займають місце в базі даних.
+  Future<void> signInAsGuest() async {
+    final prefs = await SharedPreferences.getInstance();
+    // Чистимо будь-які залишки попереднього профілю
+    await _clearLocalUserData(prefs);
+    // Вмикаємо прапорець гостьового режиму
+    await prefs.setBool(guestModeKey, true);
+    if (kDebugMode) debugPrint("👤 Активовано локальний гостьовий режим");
+  }
+
+  // 1b. АНОНІМНИЙ ВХІД ЧЕРЕЗ SUPABASE (залишено для сумісності, не використовується)
   Future<User?> signInAnonymously() async {
     try {
       final AuthResponse response = await _supabase.auth.signInAnonymously();
@@ -48,6 +96,10 @@ class AuthRepository {
         email: email,
         password: password,
       );
+      // Реальний вхід — знімаємо гостьовий прапорець та чистимо локальні дані
+      final prefs = await SharedPreferences.getInstance();
+      await _clearLocalUserData(prefs);
+      await prefs.remove(guestModeKey);
       return response.user;
     } catch (e) {
       if (kDebugMode) debugPrint("⛔ Помилка входу: $e");
@@ -57,11 +109,38 @@ class AuthRepository {
 
   // 4. ВИХІД ІЗ СИСТЕМИ
   Future<void> signOut() async {
+    final prefs = await SharedPreferences.getInstance();
     try {
-      await _supabase.auth.signOut();
+      // Очищаємо локальні дані попереднього профілю (ім'я, аватар, налаштування)
+      await _clearLocalUserData(prefs);
+      // Знімаємо прапорець гостьового режиму
+      await prefs.remove(guestModeKey);
+
+      // Якщо це був реальний акаунт Supabase — виходимо з нього
+      if (isAuthenticated) {
+        await _supabase.auth.signOut();
+      }
     } catch (e) {
       if (kDebugMode) debugPrint("⛔ Помилка виходу: $e");
       rethrow;
+    }
+  }
+
+  /// Очищає локально збережені дані користувача (профіль, налаштування, кеш).
+  /// Викликається при виході та при вході в гостьовий режим, щоб дані
+  /// попереднього користувача не "перетікали" в новий сеанс.
+  Future<void> _clearLocalUserData(SharedPreferences prefs) async {
+    const keysToClear = [
+      'user_name',
+      'avatar_path',
+      'dark_immersion',
+      'bio_sync',
+      'zen_notifications',
+      'notifications_enabled',
+      'sounds_enabled',
+    ];
+    for (final key in keysToClear) {
+      await prefs.remove(key);
     }
   }
 

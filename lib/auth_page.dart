@@ -1,18 +1,21 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'auth_repository.dart';
 import 'main_screen.dart';
+import 'package:aetheria_graph_app/providers/user_data_provider.dart';
+import 'package:aetheria_graph_app/settings_page.dart';
 import 'package:aetheria_graph_app/l10n/app_localizations.dart';
 
-class AuthPage extends StatefulWidget {
+class AuthPage extends ConsumerStatefulWidget {
   const AuthPage({super.key});
 
   @override
-  State<AuthPage> createState() => _AuthPageState();
+  ConsumerState<AuthPage> createState() => _AuthPageState();
 }
 
-class _AuthPageState extends State<AuthPage> {
+class _AuthPageState extends ConsumerState<AuthPage> {
   final AuthRepository _authRepo = AuthRepository();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -49,6 +52,12 @@ class _AuthPageState extends State<AuthPage> {
 
   void _navigateToHome() {
     if (mounted) {
+      // КРИТИЧНО: скидаємо кеш провайдерів, щоб дані ПОПЕРЕДНЬОГО акаунту
+      // не показувались новому користувачу (або гостю). FutureProvider
+      // кешує результат, тож без інвалідації MainScreen бачив би старі дані.
+      ref.invalidate(userDataProvider);
+      ref.invalidate(settingsProvider);
+
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const MainScreen()),
       );
@@ -327,7 +336,9 @@ class _AuthPageState extends State<AuthPage> {
     final l10n = AppLocalizations.of(context)!;
     setState(() => isLoading = true);
     try {
-      await _authRepo.signInAnonymously();
+      // Локальний гостьовий режим — НЕ створює запис в БД
+      await _authRepo.signInAsGuest();
+
       _navigateToHome();
     } catch (e) {
       // ignore: use_build_context_synchronously

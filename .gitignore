@@ -43,7 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
-.env
+# .env - ВАЖЛИВО: .env файл ПОВИНЕН бути включений в проект для мобільної платформи!
+# Якщо у вас є чутливі дані, використовуйте .env.example замість цього
 web/env.json
 .gemini/
 .claude/
@@ -51,3 +52,6 @@ web/env.json
 .continue/
 .copilot/
 .codeium/
+.env
+.env.*
+!.env.example

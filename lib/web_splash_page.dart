@@ -3,7 +3,6 @@
 
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import 'package:aetheria_graph_app/l10n/app_localizations.dart';
 import 'web_main_screen.dart';
 
 class WebSplashPage extends StatefulWidget {

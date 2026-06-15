@@ -155,7 +155,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   // -------------------------------------------------------------------
   bool _isGameVisible = false; // Гра прихована за замовчуванням
   int _versionClickCount = 0; // Лічильник кліків по версії
-  // -------------------------------------------------------------------
 
   int get _currentDayIndex => DateTime.now().weekday - 1;
 
@@ -221,12 +220,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               valueColor: AlwaysStoppedAnimation<Color>(neonPink),
             ),
           ),
-          error: (err, stack) => Center(
-            child: Text(
-              "Помилка з'єднання: $err",
-              style: TextStyle(color: neonPink),
-            ),
-          ),
+          error: (err, stack) {
+            // Не показуємо лякаючий екран помилки користувачу.
+            // Логуємо та автоматично пробуємо перезавантажити дані.
+            debugPrint("⚠️ ProfilePage: помилка завантаження даних: $err");
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) ref.invalidate(userDataProvider);
+            });
+            return Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(neonPink),
+              ),
+            );
+          },
           data: (cloudData) {
             final String username = cloudData['username'] ?? "Unknown User";
             final int userXp = cloudData['xp'] ?? 0;
@@ -670,6 +676,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             value: isBioSync,
             onChanged: (val) {
               ref.read(bioSyncProvider.notifier).toggle(val);
+              // Синхронізуємо з settingsProvider
+              ref.read(settingsProvider.notifier).toggleBioSync(val);
             },
           ),
 
@@ -679,6 +687,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             value: isDarkImmersion,
             onChanged: (val) {
               ref.read(darkImmersionProvider.notifier).toggle(val);
+              // Синхронізуємо з settingsProvider
+              ref.read(settingsProvider.notifier).toggleDarkImmersion(val);
             },
           ),
 
@@ -757,6 +767,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   setState(() {
                     _isGameVisible = true;
                   });
+                  // Також оновлюємо settingsProvider
+                  ref.read(settingsProvider.notifier).toggleDevMode(true);
                   _versionClickCount = 0; // Скидаємо лічильник
                   // Додаткова трохи сильніша вібрація при розблокуванні
                   HapticFeedback.mediumImpact();

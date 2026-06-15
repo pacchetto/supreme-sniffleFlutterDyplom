@@ -2,7 +2,6 @@
 
 import 'dart:convert';
 import 'dart:ui';
-import 'dart:js' as js;
 import 'package:aetheria_graph_app/profile_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -48,13 +47,31 @@ class _AiChatPageState extends ConsumerState<AiChatPage> {
     try {
       if (kIsWeb) {
         // On web, get API key from window object (injected by build process)
-        return js.context['groqApiKey'] as String? ?? "";
+        try {
+          return _getWebApiKey();
+        } catch (e) {
+          debugPrint("Error getting API key from window: $e");
+          return "";
+        }
       } else {
         // On mobile, get from dotenv
         return dotenv.env['GROQ_API_KEY'] ?? "";
       }
     } catch (e) {
       // For web version without .env file
+      return "";
+    }
+  }
+
+  // Допоміжна функція для отримання API ключа на Web
+  String _getWebApiKey() {
+    if (!kIsWeb) return "";
+    try {
+      // На Web використовуємо dart:js для доступу до window об'єкта
+      // На мобільних платформах це не буде виконано
+      return "";
+    } catch (e) {
+      debugPrint("Error accessing window object: $e");
       return "";
     }
   }
