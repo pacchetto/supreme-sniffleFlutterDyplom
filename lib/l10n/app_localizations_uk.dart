@@ -120,7 +120,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get userAlreadyRegistered =>
-      'Цей користувач уже зареєстрований у системі.';
+      'Цей email вже використовується. Увійдіть в акаунт або скористайтесь відновленням пароля.';
 
   @override
   String get guestError => 'ПОМИЛКА ГУЕСТА';

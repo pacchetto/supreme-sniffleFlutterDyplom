@@ -155,9 +155,9 @@ class SupabaseRepository {
     if (existingProfile == null) {
       await _supabase.from('profile').insert({
         'id': userId,
-        'username': 'Alex V.',
-        'title': 'CYBER MONK',
-        'xp': 1100,
+        'username': 'Traveler',
+        'title': 'CYBER NOVICE',
+        'xp': 0,
         'bio_sync': true,
         'dark_immersion': true,
         'zen_notifications': false,
@@ -179,9 +179,9 @@ class SupabaseRepository {
     }
 
     return {
-      'username': 'Alex V.',
-      'title': 'CYBER MONK',
-      'xp': 1100,
+      'username': 'Traveler',
+      'title': 'CYBER NOVICE',
+      'xp': 0,
       'bioSync': true,
       'darkImmersion': true,
       'zenNotifications': false,

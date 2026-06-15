@@ -69,7 +69,24 @@ class AuthRepository {
     }
   }
 
-  // 2. РЕЄСТРАЦІЯ ЧЕРЕЗ EMAIL + PASSWORD
+  // 2.1 ПЕРЕВІРКА, ЧИ EMAIL ВЖЕ ЗАРЕЄСТРОВАНИЙ
+  Future<bool> isEmailAlreadyRegistered(String email) async {
+    try {
+      final result = await _supabase.rpc(
+        'email_exists',
+        params: {'check_email': email.trim().toLowerCase()},
+      );
+
+      return result == true;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint("⛔ Помилка перевірки email: $e");
+      }
+      rethrow;
+    }
+  }
+
+  // 2.2 РЕЄСТРАЦІЯ ЧЕРЕЗ EMAIL + PASSWORD
   Future<User?> signUpWithEmail({
     required String email,
     required String password,

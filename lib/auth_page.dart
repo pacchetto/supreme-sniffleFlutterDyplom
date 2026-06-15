@@ -298,10 +298,22 @@ class _AuthPageState extends ConsumerState<AuthPage> {
         );
         _navigateToHome();
       } else {
-        await _authRepo.signUpWithEmail(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
+        final email = _emailController.text.trim();
+        final password = _passwordController.text.trim();
+
+        final emailExists = await _authRepo.isEmailAlreadyRegistered(email);
+
+        if (emailExists) {
+          _showCyberDialog(
+            title: l10n.accessError,
+            message: l10n.userAlreadyRegistered,
+            icon: Icons.person_off_rounded,
+            accentColor: pinkColor,
+          );
+          return;
+        }
+
+        await _authRepo.signUpWithEmail(email: email, password: password);
 
         _showCyberDialog(
           title: l10n.verification,

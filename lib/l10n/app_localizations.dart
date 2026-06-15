@@ -305,7 +305,7 @@ abstract class AppLocalizations {
   /// No description provided for @userAlreadyRegistered.
   ///
   /// In uk, this message translates to:
-  /// **'Цей користувач уже зареєстрований у системі.'**
+  /// **'Цей email вже використовується. Увійдіть в акаунт або скористайтесь відновленням пароля.'**
   String get userAlreadyRegistered;
 
   /// No description provided for @guestError.

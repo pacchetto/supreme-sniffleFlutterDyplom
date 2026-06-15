@@ -120,7 +120,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get userAlreadyRegistered =>
-      'This user is already registered in the system.';
+      'This email is already registered. Please sign in or reset your password.';
 
   @override
   String get guestError => 'GUEST ERROR';

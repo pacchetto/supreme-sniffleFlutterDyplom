@@ -36,7 +36,7 @@
   "accessError": "ACCESS ERROR",
   "invalidCredentials": "Invalid Email or password. Please check your credentials.",
   "networkError": "Network error. Please check your internet connection.",
-  "userAlreadyRegistered": "This user is already registered in the system.",
+  "userAlreadyRegistered": "This email is already registered. Please sign in or reset your password.",
   "guestError": "GUEST ERROR",
   "anonymousSessionError": "Failed to initialize anonymous session: {error}",
   
