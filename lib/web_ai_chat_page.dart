@@ -134,7 +134,7 @@ class _WebAiChatPageState extends ConsumerState<WebAiChatPage> {
 
   Future<String> _fetchOpenAiResponse() async {
     if (openAiKey.isEmpty) {
-      return "⚠️ AI chat is currently unavailable in the web version. Please try the mobile app.";
+      return "⚠️ AI-чат наразі недоступний у вебверсії. Спробуйте мобільний застосунок.";
     }
 
     try {
