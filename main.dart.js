@@ -45868,7 +45868,7 @@ r.toString
 A.b54(new A.aBF(q,p,s.ax.b),r,t.z)},
 yB(){var s=0,r=A.N(t.N),q,p=2,o=[],n=this,m,l,k,j,i,h,g,f,e,d,c
 var $async$yB=A.O(function(a,b){if(a===1){o.push(b)
-s=p}for(;;)switch(s){case 0:if(A.aPq().length===0){q="\u26a0\ufe0f API Key not configured in web configuration."
+s=p}for(;;)switch(s){case 0:if(A.aPq().length===0){q="\u26a0\ufe0f AI chat is currently unavailable in the web version. Please try the mobile app."
 s=1
 break}p=4
 i=t.N
