@@ -45868,7 +45868,7 @@ r.toString
 A.b54(new A.aBF(q,p,s.ax.b),r,t.z)},
 yB(){var s=0,r=A.N(t.N),q,p=2,o=[],n=this,m,l,k,j,i,h,g,f,e,d,c
 var $async$yB=A.O(function(a,b){if(a===1){o.push(b)
-s=p}for(;;)switch(s){case 0:if(A.aPq().length===0){q="\u26a0\ufe0f AI chat is currently unavailable in the web version. Please try the mobile app."
+s=p}for(;;)switch(s){case 0:if(A.aPq().length===0){q="\u26a0\ufe0f AI-\u0447\u0430\u0442 \u043d\u0430\u0440\u0430\u0437\u0456 \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0438\u0439 \u0443 \u0432\u0435\u0431\u0432\u0435\u0440\u0441\u0456\u0457. \u0421\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u043c\u043e\u0431\u0456\u043b\u044c\u043d\u0438\u0439 \u0437\u0430\u0441\u0442\u043e\u0441\u0443\u043d\u043e\u043a."
 s=1
 break}p=4
 i=t.N
