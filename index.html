@@ -32,9 +32,16 @@
   <title>Aetheria Graph</title>
   <link rel="manifest" href="manifest.json">
   <script>
-    // API key injected by build process
-    window.groqApiKey = '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';
+    // API key for Groq AI (used by the web AI chat page).
+    // Left EMPTY on purpose: the real key is injected at build time from the
+    // GitHub repository secret GROQ_API_KEY by .github/workflows/deploy.yml.
+    window.groqApiKey = '';
+    // flutterConfig object read by Dart via JS interop (window.flutterConfig.groqApiKey)
+    window.flutterConfig = {
+      groqApiKey: ''
+    };
   </script>
+
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>
