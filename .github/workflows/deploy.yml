@@ -14,6 +14,9 @@ jobs:
 
       - uses: subosito/flutter-action@v2
 
+      - name: Create empty env file
+        run: touch .env
+        
       - name: Build web
         run: flutter build web --release --base-href /supreme-sniffleFlutterDyplom/
 
