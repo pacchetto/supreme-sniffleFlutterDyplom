@@ -10,12 +10,11 @@ import 'package:http/http.dart' as http;
 import 'package:aetheria_graph_app/l10n/app_localizations.dart';
 import 'package:aetheria_graph_app/profile_page.dart';
 
-// For web: import JS interop to access the Groq API key injected in index.html
-import 'dart:js_interop';
-
-// Reads `window.groqApiKey` (set in web/index.html) as a Dart String.
-@JS('window.groqApiKey')
-external JSString? get _groqApiKey;
+// Cross-platform API key accessor. On web it reads `window.groqApiKey`
+// (injected in web/index.html); on other platforms it returns "".
+// This avoids importing `dart:js_interop` directly, which is unavailable
+// on Android/iOS and breaks the release build.
+import 'package:aetheria_graph_app/utils/web_api_key.dart';
 
 class ChatMessage {
   final String text;
@@ -48,16 +47,10 @@ class _WebAiChatPageState extends ConsumerState<WebAiChatPage> {
 
   String get openAiKey {
     if (!kIsWeb) {
-      return ""; // Not available on web through dotenv
+      return ""; // Not available outside the web build
     }
-
-    try {
-      // Read window.groqApiKey injected in web/index.html
-      return _groqApiKey?.toDart ?? "";
-    } catch (e) {
-      debugPrint("⚠️ Cannot read API key from window.groqApiKey: $e");
-      return "";
-    }
+    // Reads window.groqApiKey on web; returns "" elsewhere.
+    return getGroqApiKey();
   }
 
   Future<void> _sendMessage() async {
